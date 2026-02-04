@@ -34,8 +34,8 @@ _start:
     csrw minstret, zero
     csrw minstreth, zero
     */
-    csrwr $r0, 0xB02
-    csrwr $r0, 0xB82
+    csrwr $r0, 0xb02
+    csrwr $r0, 0xb82
 
     // Set up MTVEC - not expecting to use it though
     // wyj
