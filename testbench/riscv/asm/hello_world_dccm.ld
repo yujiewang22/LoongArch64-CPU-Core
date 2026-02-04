@@ -1,7 +1,5 @@
 
-/* wyj
 OUTPUT_ARCH( "riscv" )
-*/
 ENTRY(_start)
 
 SECTIONS {

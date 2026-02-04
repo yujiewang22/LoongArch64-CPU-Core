@@ -33,7 +33,9 @@ module ifu_aln_ctl
    input logic [7:0]  ic_access_fault_f2,             // Instruction access fault for the current fetch.
    input logic [`RV_BHT_GHR_RANGE]  ifu_bp_fghr_f2,   // fetch GHR
    input logic [31:1] ifu_bp_btb_target_f2,           //  predicted RET target
-   input logic [11:0] ifu_bp_poffset_f2,              // predicted target offset
+   // wyj br
+   // input logic [11:0] ifu_bp_poffset_f2,              // predicted target offset
+   input logic [15:0] ifu_bp_poffset_f2,              // predicted target offset
 
    input logic [7:0]  ifu_bp_hist0_f2,    // history counters for all 4 potential branches, bit 1, right justified
    input logic [7:0]  ifu_bp_hist1_f2,    // history counters for all 4 potential branches, bit 1, right justified
@@ -145,8 +147,13 @@ module ifu_aln_ctl
    logic [3:0]   alignval;
    logic [31:1]  firstpc, secondpc, thirdpc, fourthpc;
 
+   // wyj br
+   /*
    logic [11:0]  f1poffset;
    logic [11:0]  f0poffset;
+   */
+   logic [15:0]  f1poffset;
+   logic [15:0]  f0poffset;
    logic [`RV_BHT_GHR_RANGE]  f1fghr;
    logic [`RV_BHT_GHR_RANGE]  f0fghr;
    logic [7:0]               f1hist1;
@@ -360,8 +367,13 @@ module ifu_aln_ctl
 
    // misc data that is associated with each fetch buffer
 
+   // wyj br
+   /*
    localparam MHI   = 45+`RV_BHT_GHR_SIZE;
    localparam MSIZE = 46+`RV_BHT_GHR_SIZE;
+   */
+   localparam MHI   = 49+`RV_BHT_GHR_SIZE;
+   localparam MSIZE = 50+`RV_BHT_GHR_SIZE;
 
    logic [MHI:0] misc_data_in, misc2, misc1, misc0;
    logic [MHI:0] misc1eff, misc0eff;
@@ -372,7 +384,9 @@ module ifu_aln_ctl
                                   ic_rd_parity_final_err,
 
                                   ifu_bp_btb_target_f2[31:1],
-                                  ifu_bp_poffset_f2[11:0],
+                                  // wyj br
+                                  // ifu_bp_poffset_f2[11:0],
+                                  ifu_bp_poffset_f2[15:0],
                                   ifu_bp_fghr_f2[`RV_BHT_GHR_RANGE]
                                   };
 
@@ -390,7 +404,9 @@ module ifu_aln_ctl
             f1perr,
 
             f1prett[31:1],
-            f1poffset[11:0],
+            // wyj br
+            // f1poffset[11:0],
+            f1poffset[15:0],
             f1fghr[`RV_BHT_GHR_RANGE]
             } = misc1eff[MHI:0];
 
@@ -400,7 +416,9 @@ module ifu_aln_ctl
             f0perr,
 
             f0prett[31:1],
-            f0poffset[11:0],
+            // wyj br
+            // f0poffset[11:0],
+            f0poffset[15:0],
             f0fghr[`RV_BHT_GHR_RANGE]
             } = misc0eff[MHI:0];
 
@@ -871,6 +889,8 @@ module ifu_aln_ctl
 
    // check on 16B boundaries
    //
+   // wyj compressd
+   /*
    assign first4B = aligndata[16*0+1:16*0] == 2'b11;
    assign first2B = ~first4B;
 
@@ -878,6 +898,15 @@ module ifu_aln_ctl
    assign second2B = ~second4B;
 
    assign third4B = aligndata[16*2+1:16*2] == 2'b11;
+   assign third2B = ~third4B;
+   */
+   assign first4B = 1'b1;
+   assign first2B = ~first4B;
+
+   assign second4B = 1'b1;
+   assign second2B = ~second4B;
+
+   assign third4B = 1'b1;
    assign third2B = ~third4B;
 
    assign ifu_i0_valid = ((first4B & alignval[1]) |
@@ -1022,7 +1051,9 @@ module ifu_aln_ctl
 
       i0_ends_f1 = (first4B & alignfromf1[1]);
 
-      i0_brp.toffset[11:0] = (i0_ends_f1) ? f1poffset[11:0] : f0poffset[11:0];
+      // wyj br
+      // i0_brp.toffset[11:0] = (i0_ends_f1) ? f1poffset[11:0] : f0poffset[11:0];
+      i0_brp.toffset[15:0] = (i0_ends_f1) ? f1poffset[15:0] : f0poffset[15:0];
 
       i0_brp.fghr[`RV_BHT_GHR_RANGE] = (i0_ends_f1) ? f1fghr[`RV_BHT_GHR_RANGE] : f0fghr[`RV_BHT_GHR_RANGE];
 
@@ -1093,7 +1124,9 @@ module ifu_aln_ctl
                    (first2B & second2B & alignfromf1[1]) |
                    (first2B & second4B & alignfromf1[2]);
 
-      i1_brp.toffset[11:0] = (i1_ends_f1) ? f1poffset[11:0] : f0poffset[11:0];
+      // wyj br
+      // i1_brp.toffset[11:0] = (i1_ends_f1) ? f1poffset[11:0] : f0poffset[11:0];
+      i1_brp.toffset[15:0] = (i1_ends_f1) ? f1poffset[15:0] : f0poffset[15:0];
 
       i1_brp.fghr[`RV_BHT_GHR_RANGE] = (i1_ends_f1) ? f1fghr[`RV_BHT_GHR_RANGE] : f0fghr[`RV_BHT_GHR_RANGE];
 

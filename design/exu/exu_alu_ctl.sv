@@ -33,7 +33,9 @@ module exu_alu_ctl
    input logic valid,                     // Valid
    input logic flush,                     // Flush pipeline
 
-   input logic [12:1] brimm,              // Branch offset
+   // wyj br
+   // input logic [12:1] brimm,              // Branch offset
+   input logic [17:2] brimm,              // Branch offset
 
    input alu_pkt_t ap,                    // {valid,predecodes}
 
@@ -72,7 +74,9 @@ module exu_alu_ctl
 
    logic [31:0]         b_ff;
 
-   logic [12:1]         brimm_ff;
+   // wyj br
+   // logic [12:1]         brimm_ff;
+   logic [17:2]         brimm_ff;
 
    logic [31:1]         pcout;
 
@@ -94,7 +98,9 @@ module exu_alu_ctl
    // any PC is run through here - doesn't have to be alu
    rvdffe #(31) pcff (.*, .en(enable), .din(pc[31:1]), .dout(pc_ff[31:1]));
 
-   rvdffe #(12) brimmff (.*, .en(enable), .din(brimm[12:1]), .dout(brimm_ff[12:1]));
+   // wyj br
+   // rvdffe #(12) brimmff (.*, .en(enable), .din(brimm[12:1]), .dout(brimm_ff[12:1]));
+   rvdffe #(16) brimmff (.*, .en(enable), .din(brimm[17:2]), .dout(brimm_ff[17:2]));
 
    predict_pkt_t pp_ff;
 
@@ -210,7 +216,9 @@ module exu_alu_ctl
 
    rvbradder ibradder (
                      .pc(pc_ff[31:1]),
-                     .offset(brimm_ff[12:1]),
+                     // wyj br
+                     // .offset(brimm_ff[12:1]),
+                     .offset(brimm_ff[17:2]),
                      .dout(pcout[31:1])
                       );
 

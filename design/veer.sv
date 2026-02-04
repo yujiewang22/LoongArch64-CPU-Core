@@ -626,8 +626,13 @@ module veer
    logic [31:0] dec_i0_immed_d;
    logic [31:0] dec_i1_immed_d;
 
+   // wyj br
+   /*
    logic [12:1] dec_i0_br_immed_d;
    logic [12:1] dec_i1_br_immed_d;
+   */
+   logic [17:2] dec_i0_br_immed_d;
+   logic [17:2] dec_i1_br_immed_d;
 
    logic         dec_i0_select_pc_d;
    logic         dec_i1_select_pc_d;
@@ -698,9 +703,18 @@ module veer
    logic        flush_final_e3;
    logic        i0_flush_final_e3;
 
+   // wyj csr
+   logic [31:0] dec_csr_rddata_d;
+
    logic        dec_csr_ren_d;
 
+   // wyj rdcntv
+   logic        dec_rdcntv_d;
+   logic [31:0] dec_timer64_final_d;
+
    logic [31:0] exu_csr_rs1_e1;
+   // wyj csr
+   logic [31:0] exu_csr_rs2_e1;
 
    logic        dec_tlu_flush_lower_wb;
    logic        dec_tlu_i0_kill_writeb_wb;    // I0 is flushed, don't writeback any results to arch state

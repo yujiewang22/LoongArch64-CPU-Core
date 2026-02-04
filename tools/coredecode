@@ -28,7 +28,9 @@ GetOptions ('legal'  => \$legal,
 if (!defined($in))  { die("must define -in=input"); }
 if (!defined($out)) { $out="${in}.out"; }
 
-if ($in eq "decode")       { $view="rv32i";  }
+# wyj
+# if ($in eq "decode")       { $view="rv32i";  }
+if ($in eq "decode")       { $view="loongarch32r";  }
 elsif ($in eq "cdecode")   { $view="rv32c";  }
 elsif ($in eq "csrdecode") { $view="csr";  }
 

@@ -278,6 +278,8 @@ endmodule // rvlsadder
 
 // assume we only maintain pc[31:1] in the pipe
 
+// wyj br
+/*
 module rvbradder
   (
     input [31:1] pc,
@@ -305,6 +307,36 @@ module rvbradder
                         ({19{ ~sign &   cout}}  & pc_inc[31:13]) |
                         ({19{  sign &  ~cout}}  & pc_dec[31:13]);
 
+
+endmodule // rvbradder
+*/
+module rvbradder
+   (
+   input [31:1] pc,
+   input [17:2] offset,
+
+   output [31:1] dout
+   );
+
+   logic          cout;
+   logic          sign;
+
+   logic [31:18]  pc_inc;
+   logic [31:18]  pc_dec;
+
+   assign {cout,dout[17:2]} = {1'b0,pc[17:2]} + {1'b0,offset[17:2]};
+
+   assign pc_inc[31:18] = pc[31:18] + 1;
+
+   assign pc_dec[31:18] = pc[31:18] - 1;
+
+   assign sign = offset[17];
+
+   assign dout[31:18] = ({14{  sign ^~  cout}} &     pc[31:18]) |
+                        ({14{ ~sign &   cout}} & pc_inc[31:18]) |
+                        ({14{  sign &  ~cout}} & pc_dec[31:18]);
+
+   assign dout[1] = 1'b0;
 
 endmodule // rvbradder
 

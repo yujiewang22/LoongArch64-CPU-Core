@@ -269,7 +269,9 @@ module ifu
    logic [7:1]  ifu_bp_inst_mask_f2; // tell ic which valids to kill because of a taken branch; right justified
    logic [7:0]  ifu_bp_hist1_f2; // history counters for all 4 potential branches; right justified
    logic [7:0]  ifu_bp_hist0_f2; // history counters for all 4 potential branches; right justified
-   logic [11:0] ifu_bp_poffset_f2; // predicted target
+   // wyj br
+   // logic [11:0] ifu_bp_poffset_f2; // predicted target
+   logic [15:0] ifu_bp_poffset_f2; // predicted target
    logic [7:0]  ifu_bp_ret_f2; // predicted ret ; right justified
    logic [7:0]  ifu_bp_pc4_f2; // pc4 indication; right justified
    logic [7:0]  ifu_bp_valid_f2; // branch valid, right justified
@@ -329,7 +331,9 @@ module ifu
    logic exu_mp_ret; // branch is a ret inst
    logic exu_mp_ja; // branch is a jump always
    logic [1:0] exu_mp_hist; // new history
-   logic [11:0] exu_mp_tgt; // target offset
+   // wyj br
+   // logic [11:0] exu_mp_tgt; // target offset
+   logic [15:0] exu_mp_tgt; // target offset
    logic [`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] exu_mp_addr; // BTB/BHT address
    logic [1:0]                          exu_mp_bank; // write bank; based on branch PC[3:2]
    logic [`RV_BTB_BTAG_SIZE-1:0] exu_mp_btag; // branch tag
@@ -344,7 +348,9 @@ module ifu
    assign exu_mp_ja = exu_mp_pkt.pja;  // branch is a jump always
    assign exu_mp_way = exu_mp_pkt.way;  // branch is a jump always
    assign exu_mp_hist[1:0] = exu_mp_pkt.hist[1:0];  // new history
-   assign exu_mp_tgt[11:0]  = exu_mp_pkt.toffset[11:0] ;  // target offset
+   // wyj br
+   // assign exu_mp_tgt[11:0]  = exu_mp_pkt.toffset[11:0] ;  // target offset
+   assign exu_mp_tgt[15:0]  = exu_mp_pkt.toffset[15:0] ;  // target offset
    assign exu_mp_addr[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO]  = exu_mp_pkt.index[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] ;  // BTB/BHT address
    assign exu_mp_bank[1:0]  = exu_mp_pkt.bank[1:0] ;  // write bank = exu_mp_pkt.;  based on branch PC[3:2]
    assign exu_mp_btag = exu_mp_pkt.btag[`RV_BTB_BTAG_SIZE-1:0] ;  // branch tag

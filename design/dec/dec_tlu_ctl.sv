@@ -88,10 +88,18 @@ module dec_tlu_ctl
    input logic        dec_csr_wen_unq_d,       // valid csr with write - for csr legal
    input logic        dec_csr_any_unq_d,       // valid csr - for csr legal
    input logic        dec_csr_wen_wb,      // csr write enable at wb
+   // wyj csr
+   /*
    input logic [11:0] dec_csr_rdaddr_d,      // read address for csr
    input logic [11:0] dec_csr_wraddr_wb,      // write address for csr
+   */
+   input logic [13:0] dec_csr_rdaddr_d,      // read address for csr
+   input logic [13:0] dec_csr_wraddr_wb,      // write address for csr
    input logic [31:0] dec_csr_wrdata_wb,   // csr write data at wb
    input logic        dec_csr_stall_int_ff, // csr is mie/mstatus
+
+   // wyj rdcntv
+   output logic [63:0] timer64,
 
    input logic dec_tlu_i0_valid_e4, // pipe 0 op at e4 is valid
    input logic dec_tlu_i1_valid_e4, // pipe 1 op at e4 is valid
@@ -2672,6 +2680,15 @@ assign dec_csr_rddata_d[31:0] = ( ({32{csr_misa}}      & 32'h40001104) |
 `undef MEIPT
 `undef MEICURPL
 
+    // wyj rdcntv
+    logic [63:0] timer64_ns;
+    logic timer64_in;
+    
+    assign kill_ebreak_count_wb = ebreak_to_debug_mode_wb & dcsr[`DCSR_STOPC];
+    assign timer64_in = ~(kill_ebreak_count_wb | (dec_tlu_dbg_halted & dcsr[`DCSR_STOPC]) | dec_tlu_pmu_fw_halted);
+    assign timer64_ns[63:0] = timer64[63:0] + {63'b0, timer64_in};
+    
+    rvdffe #(64) timer64_ff (.*, .en(timer64_in), .din(timer64_ns[63:0]), .dout(timer64[63:0]));
 
 endmodule // dec_tlu_ctl
 
@@ -2681,8 +2698,13 @@ module dec_timer_ctl
    input logic free_clk,
    input logic rst_l,
    input logic        dec_csr_wen_wb_mod,      // csr write enable at wb
+      // wyj csr
+   /*
    input logic [11:0] dec_csr_rdaddr_d,      // read address for csr
    input logic [11:0] dec_csr_wraddr_wb,      // write address for csr
+   */
+   input logic [13:0] dec_csr_rdaddr_d,      // read address for csr
+   input logic [13:0] dec_csr_wraddr_wb,      // write address for csr
    input logic [31:0] dec_csr_wrdata_wb,   // csr write data at wb
 
    input logic dec_pause_state, // Paused

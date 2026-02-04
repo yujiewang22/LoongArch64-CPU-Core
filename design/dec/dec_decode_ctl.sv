@@ -99,6 +99,8 @@ module dec_decode_ctl
    input logic dec_csr_legal_d,            // csr indicates legal operation
 
    input logic [31:0] exu_csr_rs1_e1,      // rs1 for csr instr
+   // wyj csr
+   input logic [31:0] exu_csr_rs2_e1,      // rs2 for csr instr
 
    input logic [31:0] lsu_result_dc3,      // load result
    input logic [31:0] lsu_result_corr_dc4, // corrected load result
@@ -149,8 +151,13 @@ module dec_decode_ctl
 
    output logic [31:0] dec_i1_immed_d,
 
+   // wyj br
+   /*
    output logic [12:1] dec_i0_br_immed_d,    // 12b branch immediate
    output logic [12:1] dec_i1_br_immed_d,
+   */
+   output logic [17:2] dec_i0_br_immed_d,    // 12b branch immediate
+   output logic [17:2] dec_i1_br_immed_d,
 
    output alu_pkt_t i0_ap,                   // alu packets
    output alu_pkt_t i1_ap,
@@ -209,10 +216,20 @@ module dec_decode_ctl
    output logic        dec_csr_wen_unq_d,       // valid csr with write - for csr legal
    output logic        dec_csr_any_unq_d,       // valid csr - for csr legal
    output logic        dec_csr_wen_wb,      // csr write enable at wb
+   // wyj csr
+   /*
    output logic [11:0] dec_csr_rdaddr_d,      // read address for csr
    output logic [11:0] dec_csr_wraddr_wb,     // write address for csr
+   */
+   output logic [13:0] dec_csr_rdaddr_d,      // read address for csr
+   output logic [13:0] dec_csr_wraddr_wb,     // write address for csr 
    output logic [31:0] dec_csr_wrdata_wb,   // csr write data at wb
    output logic        dec_csr_stall_int_ff, // csr is mie/mstatus
+
+   // wyj rdcntv
+   input  logic [63:0] timer64,
+   output logic        dec_rdcntv_d,
+   output logic [31:0] dec_timer64_final_d,
 
    output              dec_tlu_i0_valid_e4,  // i0 valid inst at e4
    output              dec_tlu_i1_valid_e4,
@@ -304,8 +321,11 @@ module dec_decode_ctl
    logic [9:0]         i0_rs1bypass, i0_rs2bypass;
    logic [9:0]         i1_rs1bypass, i1_rs2bypass;
 
+   // wyj imm
+   /*
    logic               i0_jalimm20, i1_jalimm20;
    logic               i0_uiimm20, i1_uiimm20;
+   */
 
    //logic             flush_final_e3;
 
@@ -319,10 +339,14 @@ module dec_decode_ctl
 
    logic               prior_inflight, prior_inflight_e1e4, prior_inflight_wb;
 
-   logic               csr_clr_d, csr_set_d, csr_write_d;
+   // wyj csr
+   // logic               csr_clr_d, csr_set_d, csr_write_d;
+   logic               csr_clr_d, csr_set_d, csr_write_d, csr_xchg_d;
 
 
-   logic        csr_clr_e1,csr_set_e1,csr_write_e1,csr_imm_e1;
+   // wyj csr
+   // logic        csr_clr_e1,csr_set_e1,csr_write_e1,csr_imm_e1;
+   logic        csr_clr_e1,csr_set_e1,csr_write_e1,csr_imm_e1,csr_xchg_e1; 
    logic [31:0] csr_mask_e1;
    logic [31:0] write_csr_data_e1;
    logic [31:0] write_csr_data_in;
@@ -356,7 +380,9 @@ module dec_decode_ctl
 
    logic [31:0]        i0_result_e3_final, i1_result_e3_final;
    logic [31:0]        i0_result_wb_raw,   i1_result_wb_raw;
-   logic [12:1] last_br_immed_d;
+   // wyj br
+   // logic [12:1] last_br_immed_d;
+   logic [17:2] last_br_immed_d;
    logic        i1_depend_i0_d;
    logic        i0_rs1_depend_i0_e1, i0_rs1_depend_i0_e2, i0_rs1_depend_i0_e3, i0_rs1_depend_i0_e4, i0_rs1_depend_i0_wb;
    logic        i0_rs1_depend_i1_e1, i0_rs1_depend_i1_e2, i0_rs1_depend_i1_e3, i0_rs1_depend_i1_e4, i0_rs1_depend_i1_wb;
@@ -394,11 +420,15 @@ module dec_decode_ctl
    logic        i0_ret_error,   i1_ret_error;
    logic        i0_br_error, i1_br_error;
    logic        i0_br_error_all, i1_br_error_all;
-   logic [11:0] i0_br_offset, i1_br_offset;
+   // wyj br
+   // logic [11:0] i0_br_offset, i1_br_offset;
+   logic [15:0] i0_br_offset, i1_br_offset;
 
    logic        freeze;
 
-   logic [20:1] i0_pcall_imm, i1_pcall_imm;    // predicted jal's
+   // wyj jal
+   // logic [20:1] i0_pcall_imm, i1_pcall_imm;    // predicted jal's
+   logic [27:2] i0_pcall_imm, i1_pcall_imm;    // predicted jal's
    logic        i0_pcall_12b_offset, i1_pcall_12b_offset;
    logic        i0_pcall_raw,   i1_pcall_raw;
    logic        i0_pcall_case,  i1_pcall_case;
@@ -557,7 +587,9 @@ module dec_decode_ctl
    logic       e4d_i0load;
 
    logic [4:0] div_waddr_wb;
-   logic [12:1] last_br_immed_e1, last_br_immed_e2;
+   // wyj br
+   // logic [12:1] last_br_immed_e1, last_br_immed_e2;
+   logic [17:2] last_br_immed_e1, last_br_immed_e2;
    logic [31:0]        i0_inst_d, i1_inst_d;
    logic [31:0]        i0_inst_e1, i1_inst_e1;
    logic [31:0]        i0_inst_e2, i1_inst_e2;
@@ -611,7 +643,9 @@ module dec_decode_ctl
    assign      i0_notbr_error = i0_brp_valid & ~(i0_dp_raw.condbr | i0_pcall_raw | i0_pja_raw | i0_pret_raw);
 
    // no toffset error for a pret
-   assign      i0_br_toffset_error = i0_brp_valid & dec_i0_brp.hist[1] & (dec_i0_brp.toffset[11:0] != i0_br_offset[11:0]) & !i0_pret_raw;
+      // wyj br
+   // assign      i0_br_toffset_error = i0_brp_valid & dec_i0_brp.hist[1] & (dec_i0_brp.toffset[11:0] != i0_br_offset[11:0]) & !i0_pret_raw;
+   assign      i0_br_toffset_error = i0_brp_valid & dec_i0_brp.hist[1] & (dec_i0_brp.toffset[15:0] != i0_br_offset[15:0]) & !i0_pret_raw;
    assign      i0_ret_error = i0_brp_valid & dec_i0_brp.ret & ~i0_pret_raw;
    assign      i0_br_error =  dec_i0_brp.br_error | i0_notbr_error | i0_br_toffset_error | i0_ret_error;
    assign      i0_predict_p_d.br_error = i0_br_error & i0_legal_decode_d & ~leak1_mode;
@@ -620,7 +654,9 @@ module dec_decode_ctl
    assign      i0_predict_p_d.bank[1:0] = dec_i0_brp.bank[1:0];
    assign      i0_predict_p_d.btag[`RV_BTB_BTAG_SIZE-1:0] = dec_i0_brp.btag[`RV_BTB_BTAG_SIZE-1:0];
    assign      i0_br_error_all = (i0_br_error | dec_i0_brp.br_start_error) & ~leak1_mode;
-   assign      i0_predict_p_d.toffset[11:0] = i0_br_offset[11:0];
+   // wyj br
+   // assign      i0_predict_p_d.toffset[11:0] = i0_br_offset[11:0];
+   assign      i0_predict_p_d.toffset[15:0] = i0_br_offset[15:0];
    assign      i0_predict_p_d.fghr[`RV_BHT_GHR_RANGE] = dec_i0_brp.fghr[`RV_BHT_GHR_RANGE];
    assign      i0_predict_p_d.way = dec_i0_brp.way;
 
@@ -639,7 +675,9 @@ module dec_decode_ctl
    assign      i1_notbr_error = dec_i1_brp.valid & ~(i1_dp_raw.condbr | i1_pcall_raw | i1_pja_raw | i1_pret_raw);
 
 
-   assign      i1_br_toffset_error = dec_i1_brp.valid & dec_i1_brp.hist[1] & (dec_i1_brp.toffset[11:0] != i1_br_offset[11:0]) & !i1_pret_raw;
+   // wyj br
+   // assign      i1_br_toffset_error = dec_i1_brp.valid & dec_i1_brp.hist[1] & (dec_i1_brp.toffset[11:0] != i1_br_offset[11:0]) & !i1_pret_raw;
+   assign      i1_br_toffset_error = dec_i1_brp.valid & dec_i1_brp.hist[1] & (dec_i1_brp.toffset[15:0] != i1_br_offset[15:0]) & !i1_pret_raw;
    assign      i1_ret_error = dec_i1_brp.valid & dec_i1_brp.ret & ~i1_pret_raw;
    assign      i1_br_error = dec_i1_brp.br_error | i1_notbr_error | i1_br_toffset_error | i1_ret_error;
    assign      i1_predict_p_d.br_error = i1_br_error & dec_i1_decode_d;
@@ -648,7 +686,9 @@ module dec_decode_ctl
    assign      i1_predict_p_d.bank[1:0] = dec_i1_brp.bank[1:0];
    assign      i1_predict_p_d.btag[`RV_BTB_BTAG_SIZE-1:0] = dec_i1_brp.btag[`RV_BTB_BTAG_SIZE-1:0];
    assign      i1_br_error_all = (i1_br_error | dec_i1_brp.br_start_error);
-   assign      i1_predict_p_d.toffset[11:0] = i1_br_offset[11:0];
+   // wyj br
+   // assign      i1_predict_p_d.toffset[11:0] = i1_br_offset[11:0];
+   assign      i1_predict_p_d.toffset[15:0] = i1_br_offset[15:0];
    assign      i1_predict_p_d.fghr[`RV_BHT_GHR_RANGE] = dec_i1_brp.fghr[`RV_BHT_GHR_RANGE];
    assign      i1_predict_p_d.way = dec_i1_brp.way;
 
@@ -1009,19 +1049,37 @@ end : cam_array
 
    // 12b jal's can be predicted - these are calls
 
-   assign i0_pcall_imm[20:1] = {i0[31],i0[19:12],i0[20],i0[30:21]};
+   // wyj jal
+   // assign i0_pcall_imm[20:1] = {i0[31],i0[19:12],i0[20],i0[30:21]};
+   assign i0_pcall_imm[27:2] = {i0[9:0],i0[25:10]};
 
-   assign i0_pcall_12b_offset = (i0_pcall_imm[12]) ? (i0_pcall_imm[20:13] == 8'hff) : (i0_pcall_imm[20:13] == 8'h0);
+   // wyj jal
+   // assign i0_pcall_12b_offset = (i0_pcall_imm[12]) ? (i0_pcall_imm[20:13] == 8'hff) : (i0_pcall_imm[20:13] == 8'h0);
+   assign i0_pcall_12b_offset = (i0_pcall_imm[17]) ? (i0_pcall_imm[27:18] == 10'h3ff) : (i0_pcall_imm[27:18] == 10'h0);
 
+   // wyj jal
+   /*
    assign i0_pcall_case  = i0_pcall_12b_offset & i0_dp_raw.imm20 & i0r.rd[4:0]!=5'b0;
    assign i0_pja_case    = i0_pcall_12b_offset & i0_dp_raw.imm20 & i0r.rd[4:0]==5'b0;
+   */
+   assign i0_pcall_case  = i0_pcall_12b_offset & i0_dp_raw.imm26 & i0_dp_raw.r1;
+   assign i0_pja_case    = i0_pcall_12b_offset & i0_dp_raw.imm26 & i0_dp_raw.r0;
 
-   assign i1_pcall_imm[20:1] = {i1[31],i1[19:12],i1[20],i1[30:21]};
+   // wyj jal
+   // assign i1_pcall_imm[20:1] = {i1[31],i1[19:12],i1[20],i1[30:21]};
+   assign i1_pcall_imm[27:2] = {i1[9:0],i1[25:10]};
 
-   assign i1_pcall_12b_offset = (i1_pcall_imm[12]) ? (i1_pcall_imm[20:13] == 8'hff) : (i1_pcall_imm[20:13] == 8'h0);
+   // wyj jal
+   // assign i1_pcall_12b_offset = (i1_pcall_imm[12]) ? (i1_pcall_imm[20:13] == 8'hff) : (i1_pcall_imm[20:13] == 8'h0);
+   assign i1_pcall_12b_offset = (i1_pcall_imm[17]) ? (i1_pcall_imm[27:18] == 10'h3ff) : (i1_pcall_imm[27:18] == 10'h0);
 
+   // wyj jal
+   /*
    assign i1_pcall_case  = i1_pcall_12b_offset & i1_dp_raw.imm20 & i1r.rd[4:0]!=5'b0;
    assign i1_pja_case    = i1_pcall_12b_offset & i1_dp_raw.imm20 & i1r.rd[4:0]==5'b0;
+   */
+   assign i1_pcall_case  = i1_pcall_12b_offset & i1_dp_raw.imm26 & i1_dp_raw.r1;
+   assign i1_pja_case    = i1_pcall_12b_offset & i1_dp_raw.imm26 & i1_dp_raw.r0;
 
 
    assign i0_pcall_raw = i0_dp_raw.jal &   i0_pcall_case;   // this includes ja
@@ -1038,14 +1096,25 @@ end : cam_array
 
 
 
+   // wyj br
+   /*
    assign i0_br_offset[11:0] = (i0_pcall_raw | i0_pja_raw) ? i0_pcall_imm[12:1] : {i0[31],i0[7],i0[30:25],i0[11:8]};
 
    assign i1_br_offset[11:0] = (i1_pcall_raw | i1_pja_raw) ? i1_pcall_imm[12:1] : {i1[31],i1[7],i1[30:25],i1[11:8]};
+   */
+   assign i0_br_offset[15:0] = (i0_pcall_raw | i0_pja_raw) ? i0_pcall_imm[17:2] : {i0[25:10]};
+   
+   assign i1_br_offset[15:0] = (i1_pcall_raw | i1_pja_raw) ? i1_pcall_imm[17:2] : {i1[25:10]};
 
    //
 
+   // wyj jal
+   /*
    assign i0_pret_case = (i0_dp_raw.jal & i0_dp_raw.imm12 & i0r.rd[4:0]==5'b0 & i0r.rs1[4:0]==5'b1);  // jalr with rd==0, rs1==1 is a ret
    assign i1_pret_case = (i1_dp_raw.jal & i1_dp_raw.imm12 & i1r.rd[4:0]==5'b0 & i1r.rs1[4:0]==5'b1);
+   */
+   assign i0_pret_case = (i0_dp_raw.jal & i0_dp_raw.imm16 & i0r.rd[4:0]==5'b0 & i0r.rs1[4:0]==5'b1);  // jalr with rd==0, rs1==1 is a ret
+   assign i1_pret_case = (i1_dp_raw.jal & i1_dp_raw.imm16 & i1r.rd[4:0]==5'b0 & i1r.rs1[4:0]==5'b1);
 
    assign i0_pret_raw = i0_dp_raw.jal &   i0_pret_case;
    assign i0_pret    = i0_dp.jal     &   i0_pret_case;
@@ -1058,11 +1127,17 @@ end : cam_array
 
    // lsu stuff
    // load/store mutually exclusive
+   // wyj lsu
+   /*
    assign dec_lsu_offset_d[11:0] =
                                    ({12{ i0_dp.lsu & i0_dp.load}} &               i0[31:20]) |
                                    ({12{~i0_dp.lsu & i1_dp.lsu & i1_dp.load}} &   i1[31:20]) |
                                    ({12{ i0_dp.lsu & i0_dp.store}} &             {i0[31:25],i0[11:7]}) |
                                    ({12{~i0_dp.lsu & i1_dp.lsu & i1_dp.store}} & {i1[31:25],i1[11:7]});
+   */
+   assign dec_lsu_offset_d[11:0] =
+                                   ({12{ i0_dp.lsu & (i0_dp.load | i0_dp.store)}} &             i0[21:10]) |
+                                   ({12{~i0_dp.lsu & i1_dp.lsu & (i1_dp.load | i1_dp.store)}} & i1[21:10]);
 
 
 
@@ -1115,6 +1190,8 @@ end : cam_array
 
 
 
+   // wyj rs1/rs2/rd
+   /*
    assign i0r.rs1[4:0] = i0[19:15];
    assign i0r.rs2[4:0] = i0[24:20];
    assign i0r.rd[4:0] = i0[11:7];
@@ -1122,6 +1199,18 @@ end : cam_array
    assign i1r.rs1[4:0] = i1[19:15];
    assign i1r.rs2[4:0] = i1[24:20];
    assign i1r.rd[4:0] = i1[11:7];
+   */
+   assign i0r.rs1[4:0] = i0_dp.csr_write ? i0[4:0] : i0[9:5];
+   assign i0r.rs2[4:0] = (i0_dp.store | i0_dp.condbr | i0_dp.csr_xchg) ? i0[4:0] : i0[14:10];
+   assign i0r.rd[4:0]  = ({5{i0_dp.r0}} & 5'b00000) |
+                         ({5{i0_dp.r1}} & 5'b00001) |
+                         ({5{(~i0_dp.r0 & ~i0_dp.r1)}} & i0[4:0]);
+
+   assign i1r.rs1[4:0] = i1_dp.csr_write ? i1[4:0] : i1[9:5];
+   assign i1r.rs2[4:0] = (i1_dp.store | i1_dp.condbr | i1_dp.csr_xchg) ? i1[4:0] : i1[14:10];
+   assign i1r.rd[4:0]  = ({5{i1_dp.r0}} & 5'b00000) |
+                         ({5{i1_dp.r1}} & 5'b00001) |
+                         ({5{(~i1_dp.r0 & ~i1_dp.r1)}} & i1[4:0]);
 
 
    assign dec_i0_rs1_en_d = i0_dp.rs1 & (i0r.rs1[4:0] != 5'd0);  // if rs1_en=0 then read will be all 0's
@@ -1133,12 +1222,15 @@ end : cam_array
    assign i0_rd_d[4:0] = i0r.rd[4:0];
 
 
+   // wyj imm
+   /*
    assign i0_jalimm20 = i0_dp.jal & i0_dp.imm20;   // jal
    assign i1_jalimm20 = i1_dp.jal & i1_dp.imm20;
 
 
    assign i0_uiimm20 = ~i0_dp.jal & i0_dp.imm20;
    assign i1_uiimm20 = ~i1_dp.jal & i1_dp.imm20;
+   */
 
 
    // csr logic
@@ -1148,16 +1240,25 @@ end : cam_array
    assign csr_clr_d =   i0_dp.csr_clr   & i0_legal_decode_d;
    assign csr_set_d   = i0_dp.csr_set   & i0_legal_decode_d;
    assign csr_write_d = i0_csr_write    & i0_legal_decode_d;
+   // wyj csr
+   assign csr_xchg_d = i0_dp.csr_xchg   & i0_legal_decode_d;
 
    assign i0_csr_write_only_d = i0_csr_write & ~i0_dp.csr_read;
 
-   assign dec_csr_wen_unq_d = (i0_dp.csr_clr | i0_dp.csr_set | i0_csr_write);   // for csr legal, can't write read-only csr
+   // wyj csr
+   // assign dec_csr_wen_unq_d = (i0_dp.csr_clr | i0_dp.csr_set | i0_csr_write);   // for csr legal, can't write read-only csr
+   assign dec_csr_wen_unq_d = (i0_dp.csr_clr | i0_dp.csr_set | i0_csr_write | i0_dp.csr_xchg);   // for csr legal, can't write read-only csr
 
    assign dec_csr_any_unq_d = any_csr_d;
 
 
+   // wyj csr
+   /* 
    assign dec_csr_rdaddr_d[11:0] = i0[31:20];
    assign dec_csr_wraddr_wb[11:0] = wbd.csrwaddr[11:0];
+   */
+   assign dec_csr_rdaddr_d[13:0] = i0[23:10];
+   assign dec_csr_wraddr_wb[13:0] = wbd.csrwaddr[13:0];
 
 
    // make sure csr doesn't write same cycle as flush_lower_wb
@@ -1165,14 +1266,25 @@ end : cam_array
    assign dec_csr_wen_wb = wbd.csrwen & wbd.i0valid & ~dec_tlu_i0_kill_writeb_wb;
 
    // If we are writing MIE or MSTATUS, hold off the external interrupt for a cycle on the write.
-   assign dec_csr_stall_int_ff = ((e4d.csrwaddr[11:0] == 12'h300) | (e4d.csrwaddr[11:0] == 12'h304)) & e4d.csrwen & e4d.i0valid & ~dec_tlu_i0_kill_writeb_wb;
+   // wyj csr
+   // assign dec_csr_stall_int_ff = ((e4d.csrwaddr[11:0] == 12'h300) | (e4d.csrwaddr[11:0] == 12'h304)) & e4d.csrwen & e4d.i0valid & ~dec_tlu_i0_kill_writeb_wb;
+   assign dec_csr_stall_int_ff = ((e4d.csrwaddr[13:0] == 14'h300) | (e4d.csrwaddr[13:0] == 14'h304)) & e4d.csrwen & e4d.i0valid & ~dec_tlu_i0_kill_writeb_wb;
 
 
+   // wyj csr
+   /*
    rvdffs #(5) csrmiscff (.*,
                         .en(~freeze),
                         .clk(active_clk),
                         .din({ dec_csr_ren_d,  csr_clr_d,  csr_set_d,  csr_write_d,  i0_dp.csr_imm}),
                         .dout({csr_read_e1,    csr_clr_e1, csr_set_e1, csr_write_e1, csr_imm_e1})
+                       );
+   */
+   rvdffs #(6) csrmiscff (.*,
+                        .en(~freeze),
+                        .clk(active_clk),
+                        .din({ dec_csr_ren_d,  csr_clr_d,  csr_set_d,  csr_write_d, csr_xchg_d, i0_dp.csr_imm}),
+                        .dout({csr_read_e1,    csr_clr_e1, csr_set_e1, csr_write_e1, csr_xchg_e1, csr_imm_e1})
                        );
 
 
@@ -1187,9 +1299,16 @@ end : cam_array
                               ({32{~csr_imm_e1}} &  exu_csr_rs1_e1[31:0]);
 
 
+   // wyj csr
+   /*
    assign write_csr_data_e1[31:0] = ({32{csr_clr_e1}}   & (csr_rddata_e1[31:0] & ~csr_mask_e1[31:0])) |
                                     ({32{csr_set_e1}}   & (csr_rddata_e1[31:0] |  csr_mask_e1[31:0])) |
                                     ({32{csr_write_e1}} & (                       csr_mask_e1[31:0]));
+   */
+   assign write_csr_data_e1[31:0] = ({32{csr_clr_e1}}   & (csr_rddata_e1[31:0] & ~csr_mask_e1[31:0])) |
+                                    ({32{csr_set_e1}}   & (csr_rddata_e1[31:0] |  csr_mask_e1[31:0])) |
+                                    ({32{csr_write_e1}} & (                       csr_mask_e1[31:0])) |
+                                    ({32{csr_xchg_e1}}  & ((csr_rddata_e1[31:0] & ~csr_mask_e1[31:0]) | (exu_csr_rs2_e1[31:0] & csr_mask_e1[31:0])));
 
 
 // pause instruction
@@ -1213,7 +1332,9 @@ end : cam_array
 
 // end pause
 
-   assign csr_data_wen = ((csr_clr_e1 | csr_set_e1 | csr_write_e1) & csr_read_e1 & ~freeze) | dec_tlu_wr_pause_wb | pause_state;
+   // wyj csr
+   // assign csr_data_wen = ((csr_clr_e1 | csr_set_e1 | csr_write_e1) & csr_read_e1 & ~freeze) | dec_tlu_wr_pause_wb | pause_state;
+   assign csr_data_wen = ((csr_clr_e1 | csr_set_e1 | csr_write_e1 | csr_xchg_e1) & csr_read_e1 & ~freeze) | dec_tlu_wr_pause_wb | pause_state;
 
    assign write_csr_data_in[31:0] = (pause_state)         ? (write_csr_data[31:0] - 32'b1) :
                                     (dec_tlu_wr_pause_wb) ? dec_csr_wrdata_wb[31:0] : write_csr_data_e1[31:0];
@@ -1229,16 +1350,34 @@ end : cam_array
 
 
 // read the csr value through rs2 immed port
+   // wyj csr
+   /*
    assign dec_i0_immed_d[31:0] = ({32{ i0_dp.csr_read}} & dec_csr_rddata_d[31:0]) |
                                  ({32{~i0_dp.csr_read}} & i0_immed_d[31:0]);
+   */
+   assign dec_i0_immed_d[31:0] = i0_immed_d[31:0];
+
+   // wyj rdcntv
+   assign dec_rdcntv_d = i0_dp.rdcntv;
+   assign dec_timer64_final_d[31:0] = i0_dp.low ? timer64[31:0] : timer64[63:32];
 
 // end csr stuff
 
+   // wyj imm
+   /*
    assign     i0_immed_d[31:0] = ({32{i0_dp.imm12}} &   { {20{i0[31]}},i0[31:20] }) |  // jalr
                                  ({32{i0_dp.shimm5}} &    {27'b0, i0[24:20]}) |
                                  ({32{i0_jalimm20}} &   { {12{i0[31]}},i0[19:12],i0[20],i0[30:21],1'b0}) |
                                  ({32{i0_uiimm20}}  &     {i0[31:12],12'b0 }) |
                                  ({32{i0_csr_write_only_d & i0_dp.csr_imm}} & {27'b0,i0[19:15]});  // for csr's that only write csr, dont read csr
+   */
+   assign     i0_immed_d[31:0] = ({32{i0_dp.imm12}}  & {{20{i0[21]}}, i0[21:10]})              | // addi/slti/sltiu
+                                 ({32{i0_dp.uimm12}} & {20'b0, i0[21:10]})                     | // xori/ori/andi
+                                 ({32{i0_dp.shimm5}} & {27'b0, i0[14:10]})                     | // slli/srli/srai
+                                 ({32{i0_dp.imm20}}  & {i0[24:5], 12'b0})                      | // lui/auipc
+                                 ({32{i0_dp.imm26}}  & {{4{i0[9]}}, i0[9:0], i0[25:10], 2'b0}) | // jal
+                                 ({32{i0_dp.imm16}}  & {{14{i0[25]}}, i0[25:10], 2'b0})        | // jalr
+                                 ({32{i0_csr_write_only_d & i0_dp.csr_imm}} & {27'b0, i0[19:15]});
 
 
 //   assign dec_i0_br_immed_d[12:1] = ({12{ i0_ap.predict_nt }} &           {i0[31],i0[7],i0[30:25],i0[11:8]}) |
@@ -1246,7 +1385,9 @@ end : cam_array
 
    // all conditional branches are currently predict_nt
    // change this to generate the sequential address for all other cases for NPC requirements at commit
-   assign dec_i0_br_immed_d[12:1] = (i0_ap.predict_nt & ~i0_dp.jal) ? i0_br_offset[11:0] : {10'b0,i0_ap_pc4,i0_ap_pc2};
+   // wyj br
+   // assign dec_i0_br_immed_d[12:1] = (i0_ap.predict_nt & ~i0_dp.jal) ? i0_br_offset[11:0] : {10'b0,i0_ap_pc4,i0_ap_pc2};
+   assign dec_i0_br_immed_d[17:2] = (i0_ap.predict_nt & ~i0_dp.jal) ? i0_br_offset[15:0] : {15'b0,i0_ap_pc4};
 
 
    assign dec_i1_rs1_en_d = i1_dp.rs1 & (i1r.rs1[4:0] != 5'd0);
@@ -1258,21 +1399,38 @@ end : cam_array
    assign i1_rd_d[4:0] = i1r.rd[4:0];
 
 
+   // wyj imm
+   /*
    assign dec_i1_immed_d[31:0] = ({32{i1_dp.imm12}} &   { {20{i1[31]}},i1[31:20] }) |
                                  ({32{i1_dp.shimm5}} &    {27'b0, i1[24:20]}) |
                                  ({32{i1_jalimm20}} &   { {12{i1[31]}},i1[19:12],i1[20],i1[30:21],1'b0}) |
                                  ({32{i1_uiimm20}}  &     {i1[31:12],12'b0 });
+   */
+   assign dec_i1_immed_d[31:0] = ({32{i1_dp.imm12}}  & {{20{i1[21]}}, i1[21:10]})              | // addi/slti/sltiu
+                                 ({32{i1_dp.uimm12}} & {20'b0, i1[21:10]})                     | // xori/ori/andi
+                                 ({32{i1_dp.shimm5}} & {27'b0, i1[14:10]})                     | // slli/srli/srai
+                                 ({32{i1_dp.imm20}}  & {i1[24:5], 12'b0})                      | // lui/auipc
+                                 ({32{i1_dp.imm26}}  & {{4{i1[9]}}, i1[9:0], i1[25:10], 2'b0}) | // jal
+                                 ({32{i1_dp.imm16}}  & {{14{i1[25]}}, i1[25:10], 2'b0});         // jalr
 
 
    // jal is always +2 or +4
-   assign dec_i1_br_immed_d[12:1] = (i1_ap.predict_nt & ~i1_dp.jal) ? i1_br_offset[11:0] : {10'b0,i1_ap_pc4,i1_ap_pc2};
+   // wyj br
+   // assign dec_i1_br_immed_d[12:1] = (i1_ap.predict_nt & ~i1_dp.jal) ? i1_br_offset[11:0] : {10'b0,i1_ap_pc4,i1_ap_pc2};
+   assign dec_i1_br_immed_d[17:2] = (i1_ap.predict_nt & ~i1_dp.jal) ? i1_br_offset[15:0] : {15'b0,i1_ap_pc4};
 
 
 
 
+   // wyj br
+   /*
    assign last_br_immed_d[12:1] = (dec_i1_decode_d) ?
                                   ((i1_ap.predict_nt) ? {10'b0,i1_ap_pc4,i1_ap_pc2} : i1_br_offset[11:0] ) :
                                   ((i0_ap.predict_nt) ? {10'b0,i0_ap_pc4,i0_ap_pc2} : i0_br_offset[11:0] );
+   */
+   assign last_br_immed_d[17:2] = (dec_i1_decode_d) ?
+                                  ((i1_ap.predict_nt) ? {15'b0,i1_ap_pc4} : i1_br_offset[15:0] ) :
+                                  ((i0_ap.predict_nt) ? {15'b0,i0_ap_pc4} : i0_br_offset[15:0] );
 
    assign i0_valid_d = dec_ib0_valid_d;
    assign i1_valid_d = dec_ib1_valid_d;
@@ -1350,8 +1508,12 @@ end : cam_array
                        dec_i1_sbecc_d |
                        i0_dp.csr_read |
                        i0_dp.csr_write |
+                       // wyj rdcntv
+                       i0_dp.rdcntv |
                        i1_dp.csr_read |
                        i1_dp.csr_write |  // optimized csr write with rd==0
+                       // wyj rdcntv
+                       i1_dp.rdcntv |
                        i1_nonblock_load_stall |
                        i1_store_stall_d |
                        i1_load_block_d |    // load data not ready
@@ -2085,7 +2247,9 @@ end : cam_array
 
    assign dd.csrwen = dec_csr_wen_unq_d & i0_legal_decode_d;
    assign dd.csrwonly = i0_csr_write_only_d & dec_i0_decode_d;
-   assign dd.csrwaddr[11:0] = i0[31:20];    // csr write address for rd==0 case
+   // wyj csr
+   // assign dd.csrwaddr[11:0] = i0[31:20];    // csr write address for rd==0 case
+   assign dd.csrwaddr[13:0] = i0[23:10];    // csr write address for rd==0 case
 
 
    assign i0_pipe_en[5] = dec_i0_decode_d;
@@ -2285,8 +2449,13 @@ end : cam_array
    assign i1_result_wb[31:0] = i1_result_wb_raw[31:0];
 
 
+   // wyj br
+   /*
    rvdffe #(12) e1brpcff (.*, .en(i0_e1_data_en), .din(last_br_immed_d[12:1] ), .dout(last_br_immed_e1[12:1]));
    rvdffe #(12) e2brpcff (.*, .en(i0_e2_data_en), .din(last_br_immed_e1[12:1]), .dout(last_br_immed_e2[12:1]));
+   */
+   rvdffe #(16) e1brpcff (.*, .en(i0_e1_data_en), .din(last_br_immed_d[17:2] ), .dout(last_br_immed_e1[17:2]));
+   rvdffe #(16) e2brpcff (.*, .en(i0_e2_data_en), .din(last_br_immed_e1[17:2]), .dout(last_br_immed_e2[17:2]));
 
 
 
@@ -2348,7 +2517,9 @@ end : cam_array
 
    rvbradder ibradder_correct (
                      .pc(last_pc_e2[31:1]),
-                     .offset(last_br_immed_e2[12:1]),
+                     // wyj br
+                     // .offset(last_br_immed_e2[12:1]),
+                     .offset(last_br_immed_e2[17:2]),
                      .dout(pred_correct_npc_e2[31:1])
                      );
 
@@ -2505,6 +2676,8 @@ module dec_dec_ctl
    assign i[31:0] = inst[31:0];
 
 
+// wyj decode
+/* 
 assign out.alu = (i[2]) | (i[6]) | (!i[25]&i[4]) | (!i[5]&i[4]);
 
 assign out.rs1 = (!i[14]&!i[13]&!i[2]) | (!i[13]&i[11]&!i[2]) | (i[19]&i[13]&!i[2]) | (
@@ -2664,6 +2837,186 @@ assign out.legal = (!i[31]&!i[30]&i[29]&i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]
     &!i[3]&!i[2]&i[1]&i[0]) | (i[6]&i[5]&!i[4]&i[3]&i[2]&i[1]&i[0]) | (
     i[13]&!i[6]&!i[5]&i[4]&!i[3]&i[1]&i[0]) | (!i[14]&!i[12]&!i[6]&!i[4]
     &!i[3]&!i[2]&i[1]&i[0]) | (!i[6]&i[4]&!i[3]&i[2]&i[1]&i[0]);
+*/
+   assign out.alu = (!i[27]&i[19]&!i[18]) | (!i[27]&!i[21]&!i[19]) | (!i[27]&i[25]) | (
+      i[28]) | (i[26]) | (i[30]);
+
+   assign out.rs1 = (!i[28]&!i[26]&i[21]) | (!i[28]&!i[26]&i[20]) | (!i[28]&!i[26]
+      &i[15]) | (i[29]&!i[28]) | (!i[28]&i[25]) | (!i[28]&i[5]) | (i[30]
+      &i[27]) | (!i[28]&i[6]) | (!i[28]&i[7]) | (!i[28]&i[8]) | (!i[28]
+      &i[9]);
+
+   assign out.rs2 = (!i[28]&!i[27]&!i[26]&!i[25]&i[21]&!i[17]) | (!i[28]&!i[27]&!i[26]
+      &!i[25]&i[20]) | (!i[28]&!i[27]&i[26]&!i[25]&i[9]) | (!i[28]&!i[27]
+      &i[26]&!i[25]&i[8]) | (!i[28]&!i[27]&i[26]&!i[25]&i[7]) | (!i[28]
+      &!i[27]&i[26]&!i[25]&i[6]) | (i[30]&i[29]) | (i[29]&i[24]) | (i[30]
+      &i[28]&i[27]);
+
+   assign out.imm12 = (!i[30]&!i[27]&!i[26]&!i[24]&!i[22]&i[19]&i[17]) | (!i[30]&i[26]
+      &i[25]) | (!i[30]&i[25]&i[24]&!i[23]) | (!i[30]&!i[27]&i[25]&!i[24]
+      &!i[22]);
+
+   assign out.uimm12 = (!i[30]&!i[27]&!i[26]&i[25]&!i[24]&i[22]) | (!i[30]&i[25]&i[24]
+      &i[23]);
+
+   assign out.rd = (!i[30]&i[26]) | (i[28]&!i[27]) | (!i[30]&!i[28]&!i[24]) | (!i[29]
+      &!i[28]);
+
+   assign out.r0 = (i[28]&!i[27]&!i[26]);
+
+   assign out.r1 = (i[30]&i[28]&!i[27]&i[26]);
+
+   assign out.shimm5 = (!i[30]&!i[29]&!i[26]&!i[25]&i[22]);
+
+   assign out.imm20 = (!i[30]&i[28]&i[26]);
+
+   assign out.imm26 = (i[30]&i[28]&!i[27]);
+
+   assign out.imm16 = (!i[29]&!i[28]&i[27]);
+
+   assign out.pc = (!i[30]&i[27]&i[26]) | (i[30]&i[28]&!i[27]);
+
+   assign out.load = (!i[30]&!i[28]&i[27]&!i[24]);
+
+   assign out.store = (!i[30]&i[29]&i[24]);
+
+   assign out.lsu = (!i[30]&!i[28]&i[27]);
+
+   assign out.add = (!i[30]&!i[27]&!i[26]&!i[25]&i[20]&!i[19]&!i[17]&!i[16]&!i[15]) | (
+      !i[30]&i[25]&!i[24]&i[23]) | (!i[30]&i[27]&i[26]);
+
+   assign out.sub = (!i[28]&!i[27]&!i[26]&!i[25]&i[20]&!i[18]&i[16]) | (!i[28]&!i[27]
+      &!i[26]&!i[25]&!i[21]&i[17]&!i[16]) | (!i[28]&!i[27]&!i[26]&i[25]
+      &!i[24]&!i[23]) | (i[30]&i[29]) | (i[30]&i[28]&i[27]);
+
+   assign out.land = (!i[30]&!i[29]&!i[26]&!i[25]&i[20]&!i[19]&i[18]&!i[16]) | (!i[30]
+      &i[25]&i[24]&!i[23]);
+
+   assign out.lor = (!i[30]&!i[27]&!i[25]&!i[22]&!i[21]&!i[20]) | (i[29]&i[28]) | (
+      !i[30]&!i[27]&!i[25]&!i[19]&i[18]&!i[17]&!i[15]) | (!i[30]&!i[27]
+      &!i[25]&i[21]&i[17]) | (!i[30]&!i[27]&i[24]&!i[22]) | (!i[30]&!i[27]
+      &i[26]);
+
+   assign out.lxor = (!i[30]&!i[27]&!i[26]&!i[25]&i[18]&!i[17]&i[16]&i[15]) | (!i[30]
+      &!i[26]&i[23]&i[22]);
+
+   assign out.sll = (!i[30]&!i[29]&!i[26]&!i[25]&i[18]&i[17]&!i[15]) | (!i[30]&!i[29]
+      &!i[26]&!i[25]&i[22]&!i[19]&!i[18]);
+
+   assign out.sra = (!i[30]&!i[27]&!i[26]&!i[25]&i[19]&!i[18]&!i[17]);
+
+   assign out.srl = (!i[30]&!i[27]&!i[26]&!i[25]&!i[20]&i[18]) | (!i[30]&!i[29]&!i[26]
+      &!i[25]&i[17]&i[16]&i[15]);
+
+   assign out.slt = (!i[30]&!i[29]&!i[26]&!i[25]&!i[21]&i[17]&!i[16]) | (!i[30]&!i[27]
+      &!i[26]&i[25]&!i[24]&!i[23]);
+
+   assign out.unsign = (!i[30]&!i[29]&!i[26]&!i[25]&!i[18]&i[17]&i[15]) | (!i[30]&!i[27]
+      &!i[26]&!i[25]&!i[20]&!i[17]&i[16]) | (!i[30]&i[27]&i[25]) | (!i[30]
+      &!i[26]&i[25]&!i[24]&i[22]) | (i[30]&i[29]&i[27]);
+
+   assign out.condbr = (i[30]&i[29]) | (i[30]&i[28]&i[27]);
+
+   assign out.beq = (!i[29]&i[27]&!i[26]);
+
+   assign out.bne = (i[30]&i[28]&i[27]&i[26]);
+
+   assign out.bge = (i[29]&i[26]);
+
+   assign out.blt = (i[30]&!i[28]&!i[26]);
+
+   assign out.jal = (!i[29]&!i[28]&i[27]) | (i[30]&i[28]&!i[27]);
+
+   assign out.by = (!i[30]&i[29]&!i[23]&!i[22]);
+
+   assign out.half = (!i[30]&!i[28]&i[27]&i[22]);
+
+   assign out.word = (!i[30]&i[29]&i[23]);
+
+   assign out.csr_read = (!i[30]&!i[28]&i[26]&!i[25]);
+
+   assign out.csr_clr  = 1'b0;
+
+   assign out.csr_set  = 1'b0;
+
+   assign out.csr_write = (!i[30]&!i[28]&i[26]&!i[25]&!i[9]&!i[8]&!i[7]&!i[6]&i[5]);
+
+   assign out.csr_xchg = (!i[30]&!i[28]&i[26]&!i[25]&i[9]) | (!i[30]&!i[28]&i[26]&!i[25]
+      &i[8]) | (!i[30]&!i[28]&i[26]&!i[25]&i[7]) | (!i[30]&!i[28]&i[26]
+      &!i[25]&i[6]);
+
+   assign out.csr_imm  = 1'b0;
+
+   assign out.rdcntv = (!i[30]&!i[27]&!i[26]&!i[25]&!i[22]&!i[21]&!i[20]);
+
+   assign out.presync = (i[29]&i[28]) | (!i[30]&!i[27]&!i[26]&!i[25]&i[21]&!i[17]) | (
+      !i[30]&!i[28]&i[26]&!i[25]&i[9]) | (!i[30]&!i[28]&i[26]&!i[25]&i[8]) | (
+      !i[30]&!i[28]&i[26]&!i[25]&i[7]) | (!i[30]&!i[28]&i[26]&!i[25]&i[6]) | (
+      !i[30]&!i[28]&i[26]&!i[25]&i[5]);
+
+   assign out.postsync = (!i[30]&i[26]&i[25]&!i[15]) | (i[29]&i[28]&!i[15]) | (!i[30]
+      &!i[29]&!i[26]&!i[25]&i[21]) | (!i[30]&!i[28]&i[26]&!i[25]&i[9]) | (
+      !i[30]&!i[28]&i[26]&!i[25]&i[8]) | (!i[30]&!i[28]&i[26]&!i[25]&i[7]) | (
+      !i[30]&!i[28]&i[26]&!i[25]&i[6]) | (!i[30]&!i[28]&i[26]&!i[25]&i[5]);
+
+   assign out.ebreak = (!i[30]&!i[29]&!i[26]&!i[25]&i[21]&i[17]&!i[16]);
+
+   assign out.ecall = (!i[30]&!i[27]&!i[26]&!i[25]&!i[20]&i[17]&i[16]);
+
+   assign out.mret = (!i[30]&i[26]&i[25]&!i[15]);
+
+   assign out.mul = (!i[30]&!i[27]&!i[26]&!i[25]&i[19]&i[18]);
+
+   assign out.rs1_sign = (!i[30]&!i[27]&!i[26]&!i[25]&!i[22]&i[19]&i[15]);
+
+   assign out.rs2_sign = (!i[30]&!i[27]&!i[26]&!i[25]&!i[22]&i[19]&i[15]);
+
+   assign out.low = (!i[30]&!i[27]&!i[26]&!i[25]&!i[22]&!i[21]&!i[20]&!i[10]) | (!i[30]
+      &!i[27]&!i[26]&!i[25]&i[18]&!i[16]&!i[15]);
+
+   assign out.div = (!i[30]&!i[29]&!i[26]&!i[25]&i[21]&!i[17]);
+
+   assign out.rem = (!i[30]&!i[29]&!i[26]&!i[25]&i[21]&i[15]);
+
+   assign out.fence = (i[29]&i[28]);
+
+   assign out.fence_i = (i[29]&i[28]&!i[15]);
+
+   assign out.pm_alu = (!i[30]&i[26]&i[25]&i[15]) | (!i[30]&!i[29]&!i[26]&!i[19]&i[18]) | (
+      !i[30]&!i[29]&!i[26]&i[20]&!i[18]) | (!i[30]&i[28]&i[26]) | (!i[30]
+      &!i[27]&i[25]&!i[22]) | (!i[30]&!i[29]&!i[26]&i[22]);
+
+   assign out.legal = (!i[31]&!i[30]&!i[29]&!i[28]&!i[27]&i[25]&!i[24]&!i[23]&i[22]
+    &!i[21]&!i[20]&i[19]&!i[18]&!i[17]&!i[16]&!i[14]&i[13]&i[12]&i[11]
+    &!i[10]&!i[9]&!i[8]&!i[7]&!i[6]&!i[5]&!i[4]&!i[3]&!i[2]&!i[1]&!i[0]) | (
+    !i[31]&!i[30]&!i[29]&!i[28]&!i[27]&!i[25]&!i[24]&!i[23]&!i[22]&!i[20]
+    &!i[19]&!i[18]&!i[17]&!i[16]&!i[15]&i[14]&i[13]&!i[12]&!i[11]&!i[9]
+    &!i[8]&!i[7]&!i[6]&!i[5]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[27]&!i[25]
+    &!i[24]&!i[23]&!i[22]&i[21]&!i[20]&i[19]&!i[18]&i[17]&!i[15]) | (
+    !i[31]&!i[30]&!i[29]&!i[28]&!i[27]&!i[25]&!i[24]&!i[23]&!i[22]&!i[21]
+    &i[20]&!i[19]&!i[18]&!i[17]&!i[15]) | (!i[31]&!i[30]&!i[29]&!i[28]
+    &!i[27]&!i[25]&!i[24]&!i[23]&i[22]&!i[21]&!i[20]&!i[19]&!i[17]&!i[16]
+    &i[15]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[27]&!i[25]&!i[24]&!i[23]
+    &!i[22]&!i[21]&i[20]&i[18]&!i[17]&!i[16]&i[15]) | (!i[31]&!i[30]
+    &!i[29]&!i[28]&!i[27]&!i[25]&!i[24]&!i[23]&!i[22]&!i[21]&i[20]&i[19]
+    &i[18]&!i[17]&!i[15]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[27]&!i[25]
+    &!i[24]&!i[23]&!i[22]&!i[21]&i[20]&!i[19]&!i[18]&i[17]&!i[16]) | (
+    !i[31]&!i[30]&!i[29]&!i[28]&!i[27]&!i[25]&!i[24]&!i[23]&!i[22]&!i[21]
+    &i[20]&!i[19]&i[18]&i[16]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[27]
+    &!i[25]&!i[24]&!i[23]&!i[22]&!i[21]&i[20]&!i[18]&!i[17]&!i[16]&!i[15]) | (
+    !i[31]&!i[30]&!i[29]&!i[28]&!i[27]&!i[25]&!i[24]&!i[23]&!i[22]&i[21]
+    &!i[20]&!i[19]&!i[18]&!i[17]) | (!i[31]&!i[30]&!i[29]&!i[28]&!i[27]
+    &!i[26]&i[25]&i[24]&i[23]) | (!i[31]&i[30]&!i[28]&i[27]&i[26]) | (
+    !i[31]&!i[30]&!i[29]&!i[28]&!i[27]&!i[26]&i[25]&!i[23]&i[22]) | (
+    !i[31]&!i[30]&!i[29]&!i[28]&!i[27]&!i[26]&i[25]&!i[24]&!i[22]) | (
+    !i[31]&!i[30]&i[29]&i[27]&!i[26]&!i[25]&!i[24]&!i[23]&i[22]&i[21]
+    &i[20]&!i[19]&!i[18]&i[17]&!i[16]) | (!i[31]&!i[30]&!i[29]&!i[28]
+    &!i[27]&!i[24]&!i[23]&i[22]&!i[21]&!i[20]&i[19]&!i[18]&!i[17]&!i[16]
+    &i[15]) | (!i[31]&!i[30]&!i[29]&!i[27]&i[26]&!i[25]&!i[24]) | (!i[31]
+    &i[29]&!i[28]&i[27]&!i[26]&!i[25]&!i[22]) | (!i[31]&i[29]&!i[28]
+    &i[27]&!i[26]&!i[25]&!i[23]) | (!i[31]&i[29]&!i[28]&i[27]&!i[26]
+    &!i[24]&!i[23]) | (!i[31]&i[30]&!i[29]&i[28]) | (!i[31]&i[30]&i[29]
+    &!i[28]) | (!i[31]&!i[29]&i[28]&i[26]&!i[25]);
 
 
 endmodule

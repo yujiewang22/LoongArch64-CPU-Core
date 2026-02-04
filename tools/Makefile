@@ -20,7 +20,10 @@ $(error env var RV_ROOT does not point to a valid dir! Exiting!)
 endif
 
 TEST_CFLAGS = -g -O3 -funroll-all-loops
-ABI = -mabi=ilp32 -march=rv32imc
+# wyj
+# ABI = -mabi=ilp32 -march=rv32imc
+# ABI = -mabi=ilp32 -march=rv32imc_zicsr
+ABI = -mabi=ilp32s
 
 # Allow snapshot override
 target = default
@@ -33,7 +36,10 @@ VCS = vcs
 VERILATOR = verilator
 VLOG = qverilog
 RIVIERA = riviera
-GCC_PREFIX = riscv64-unknown-elf
+# wyj
+# GCC_PREFIX = riscv64-unknown-elf
+# GCC_PREFIX = riscv32-unknown-elf
+GCC_PREFIX = loongarch32r-linux-gnusf
 BUILD_DIR = snapshots/${snapshot}
 TBDIR = ${RV_ROOT}/testbench
 
@@ -168,14 +174,18 @@ program.hex:
 else
 program.hex: $(OFILES) $(LINK)
 	@echo Building $(TEST)
-	$(GCC_PREFIX)-gcc $(ABI) -Wl,-Map=$(TEST).map -lgcc -T$(LINK) -o $(TEST).exe $(OFILES) -nostartfiles  $(TEST_LIBS)
+	# wyj
+	# $(GCC_PREFIX)-gcc $(ABI) -Wl,-Map=$(TEST).map -lgcc -T$(LINK) -o $(TEST).exe $(OFILES) -nostartfiles  $(TEST_LIBS)
+	$(GCC_PREFIX)-gcc $(ABI) -static-libgcc -Wl,-N,-Map=$(TEST).map -lgcc -T$(LINK) -o $(TEST).exe $(OFILES) -nostartfiles  $(TEST_LIBS)
 	$(GCC_PREFIX)-objcopy -O verilog $(TEST).exe program.hex
 	$(GCC_PREFIX)-objdump -S  $(TEST).exe > $(TEST).dis
 	@echo Completed building $(TEST)
 
 %.o : %.s ${BUILD_DIR}/defines.h
 	$(GCC_PREFIX)-cpp -I${BUILD_DIR}  $<  > $*.cpp.s
-	$(GCC_PREFIX)-as $(ABI) $*.cpp.s -o $@
+	# wyj
+	# $(GCC_PREFIX)-as $(ABI) $*.cpp.s -o $@
+	$(GCC_PREFIX)-as $*.cpp.s -o $@
 
 
 %.o : %.c ${BUILD_DIR}/defines.h

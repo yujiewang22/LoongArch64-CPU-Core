@@ -87,8 +87,13 @@ module exu
    input logic [31:0] i1_rs1_bypass_data_d,                            // DEC bypass data
    input logic [31:0] i1_rs2_bypass_data_d,                            // DEC bypass data
 
+   // wyj br
+   /*
    input logic [12:1] dec_i0_br_immed_d,                               // Branch immediate
    input logic [12:1] dec_i1_br_immed_d,                               // Branch immediate
+   */
+   input logic [17:2] dec_i0_br_immed_d,                               // Branch immediate
+   input logic [17:2] dec_i1_br_immed_d,                               // Branch immediate
 
    input         alu_pkt_t i0_ap,                                      // DEC alu {valid,predecodes}
    input         alu_pkt_t i1_ap,                                      // DEC alu {valid,predecodes}
@@ -136,10 +141,19 @@ module exu
 
    input logic   dec_csr_ren_d,                                        // Clear I0 RS1 primary
 
+   // wyj csr
+   input logic [31:0] dec_csr_rddata_d,    
+
+   // wyj rdcntv
+   input logic        dec_rdcntv_d,
+   input logic [31:0] dec_timer64_final_d,
+
    output logic [31:0] exu_lsu_rs1_d,                                  // LSU operand
    output logic [31:0] exu_lsu_rs2_d,                                  // LSU operand
 
    output logic [31:0] exu_csr_rs1_e1,                                 // RS1 source for a CSR instruction
+   // wyj csr
+   output logic [31:0] exu_csr_rs2_e1,                                 // RS2 source for a CSR instruction
 
    output logic         exu_flush_final,                               // Pipe is being flushed this cycle
    output logic [31:1]  exu_flush_path_final,                          // Target for the oldest flush source
@@ -219,6 +233,8 @@ module exu
    logic [31:1] exu_i1_flush_path_e1;
 
    logic [31:0] i0_rs1_final_d;
+   // wyj rs1/rs2/rd
+   logic [31:0] i0_rs2_final_d;
 
    logic [31:1]  exu_flush_path_e2;
    logic [31:0]  mul_rs1_d, mul_rs2_d;
@@ -232,13 +248,17 @@ module exu
    logic [31:0] i0_rs1_e1, i0_rs2_e1;
    logic [31:0] i0_rs1_e2, i0_rs2_e2;
    logic [31:0] i0_rs1_e3, i0_rs2_e3;
-   logic [12:1] i0_br_immed_e1, i0_br_immed_e2, i0_br_immed_e3;
+   // wyj br
+   // logic [12:1] i0_br_immed_e1, i0_br_immed_e2, i0_br_immed_e3;
+   logic [17:2] i0_br_immed_e1, i0_br_immed_e2, i0_br_immed_e3;
 
    logic [31:0] i1_rs1_e1, i1_rs2_e1;
    logic [31:0] i1_rs1_e2, i1_rs2_e2;
    logic [31:0] i1_rs1_e3, i1_rs2_e3;
 
-   logic [12:1] i1_br_immed_e1, i1_br_immed_e2, i1_br_immed_e3;
+   // wyj br
+   // logic [12:1] i1_br_immed_e1, i1_br_immed_e2, i1_br_immed_e3;
+   logic [17:2] i1_br_immed_e1, i1_br_immed_e2, i1_br_immed_e3;
 
    logic [31:0] i0_rs1_e2_final, i0_rs2_e2_final;
    logic [31:0] i1_rs1_e2_final, i1_rs2_e2_final;
@@ -262,7 +282,9 @@ module exu
    logic        i1_sec_decode_e4, i0_sec_decode_e4;
    logic        i1_pred_correct_e4_eff, i0_pred_correct_e4_eff;
    logic [31:1] i1_flush_path_e4_eff, i0_flush_path_e4_eff;
-   logic [31:0] csr_rs1_in_d;
+   // wyj csr
+   // logic [31:0] csr_rs1_in_d;
+   logic [31:0] csr_rs1_in_d, csr_rs2_in_d;
    logic [31:1] i1_flush_path_upper_e2, i0_flush_path_upper_e2;
    logic [31:1] i1_flush_path_upper_e3, i0_flush_path_upper_e3;
    logic [31:1] i1_flush_path_upper_e4, i0_flush_path_upper_e4;
@@ -281,11 +303,17 @@ module exu
                            ({32{ dec_i0_rs1_bypass_en_d}} & i0_rs1_bypass_data_d[31:0]);
 
 
-   assign i0_rs1_final_d[31:0] = ({32{~dec_csr_ren_d}} & i0_rs1_d[31:0]);
+   // wyj rs1/rs2/rd
+   // assign i0_rs1_final_d[31:0] = ({32{~dec_csr_ren_d}} & i0_rs1_d[31:0]);
+   assign i0_rs1_final_d[31:0] = ({32{~dec_csr_ren_d & ~dec_rdcntv_d}} & i0_rs1_d[31:0]);
 
    assign i0_rs2_d[31:0]       = ({32{~dec_i0_rs2_bypass_en_d}} & gpr_i0_rs2_d[31:0]) |
                                  ({32{~dec_i0_rs2_bypass_en_d}} & dec_i0_immed_d[31:0]) |
                                  ({32{ dec_i0_rs2_bypass_en_d}} & i0_rs2_bypass_data_d[31:0]);
+   // wyj rs1/rs2/rd
+   assign i0_rs2_final_d[31:0] = ({32{~dec_csr_ren_d & ~dec_rdcntv_d}} & i0_rs2_d[31:0]) |
+                                 ({32{ dec_csr_ren_d & ~dec_rdcntv_d}} & dec_csr_rddata_d[31:0]) |
+                                 ({32{~dec_csr_ren_d &  dec_rdcntv_d}} & dec_timer64_final_d);
 
    assign i1_rs1_d[31:0]       = ({32{~dec_i1_rs1_bypass_en_d}} & gpr_i1_rs1_d[31:0]) |
                                  ({32{~dec_i1_rs1_bypass_en_d   & dec_i1_select_pc_d}} & { dec_i1_pc_d[31:1], 1'b0}) |  // pc orthogonal with rs1
@@ -329,6 +357,8 @@ module exu
 
 
    assign csr_rs1_in_d[31:0] = (dec_csr_ren_d) ? i0_rs1_d[31:0] : exu_csr_rs1_e1[31:0];
+   // wyj csr
+   assign csr_rs2_in_d[31:0] = (dec_csr_ren_d) ? i0_rs2_d[31:0] : exu_csr_rs2_e1[31:0];
 
    logic       i0_e1_data_en, i0_e2_data_en, i0_e3_data_en;
    logic       i0_e1_ctl_en,  i0_e2_ctl_en,  i0_e3_ctl_en,  i0_e4_ctl_en;
@@ -346,6 +376,8 @@ module exu
 
 
    rvdffe #(32) csr_rs1_ff (.*, .en(i0_e1_data_en), .din(csr_rs1_in_d[31:0]), .dout(exu_csr_rs1_e1[31:0]));
+   // wyj csr
+   rvdffe #(32) csr_rs2_ff (.*, .en(i0_e1_data_en), .din(csr_rs2_in_d[31:0]), .dout(exu_csr_rs2_e1[31:0]));
 
 
    exu_mul_ctl mul_e1    (.*,
@@ -405,9 +437,13 @@ module exu
                           .valid         ( dec_i0_alu_decode_d         ),   // I
                           .flush         ( exu_flush_final             ),   // I
                           .a             ( i0_rs1_final_d[31:0]        ),   // I
-                          .b             ( i0_rs2_d[31:0]              ),   // I
+                          // wyj rs1/rs2/rd
+                          // .b             ( i0_rs2_d[31:0]              ),   // I
+                          .b             ( i0_rs2_final_d[31:0]              ),   // I
                           .pc            ( dec_i0_pc_d[31:1]           ),   // I
-                          .brimm         ( dec_i0_br_immed_d[12:1]     ),   // I
+                          // wyj br
+                          // .brimm         ( dec_i0_br_immed_d[12:1]     ),   // I
+                          .brimm         ( dec_i0_br_immed_d[17:2]     ),   // I
                           .ap            ( i0_ap_e1                    ),   // I
                           .out           ( exu_i0_result_e1[31:0]      ),   // O
                           .flush_upper   ( exu_i0_flush_upper_e1       ),   // O : will be 0 if freeze this cycle
@@ -427,7 +463,9 @@ module exu
                           .a             ( i1_rs1_d[31:0]              ),   // I
                           .b             ( i1_rs2_d[31:0]              ),   // I
                           .pc            ( dec_i1_pc_d[31:1]           ),   // I
-                          .brimm         ( dec_i1_br_immed_d[12:1]     ),   // I
+                          // wyj br
+                          // .brimm         ( dec_i1_br_immed_d[12:1]     ),   // I
+                          .brimm         ( dec_i1_br_immed_d[17:2]     ),   // I
                           .ap            ( i1_ap_e1                    ),   // I
                           .out           ( exu_i1_result_e1[31:0]      ),   // O
                           .flush_upper   ( exu_i1_flush_upper_e1       ),   // O : will be 0 if freeze this cycle
@@ -471,43 +509,91 @@ module exu
 
 
 
+   // wyj br
+   /*
    rvdffe #(76) i0_src_e1_ff (.*,
                             .en(i0_e1_data_en),
                             .din( {i0_rs1_d[31:0], i0_rs2_d[31:0], dec_i0_br_immed_d[12:1]}),
                             .dout({i0_rs1_e1[31:0], i0_rs2_e1[31:0], i0_br_immed_e1[12:1]})
                             );
+   */
+   rvdffe #(80) i0_src_e1_ff (.*,
+                            .en(i0_e1_data_en),
+                            .din( {i0_rs1_d[31:0], i0_rs2_d[31:0], dec_i0_br_immed_d[17:2]}),
+                            .dout({i0_rs1_e1[31:0], i0_rs2_e1[31:0], i0_br_immed_e1[17:2]})                  
+                            );
 
+   // wyj br
+   /*
    rvdffe #(76) i0_src_e2_ff (.*,
                             .en(i0_e2_data_en),
                             .din( {i0_rs1_e1[31:0], i0_rs2_e1[31:0], i0_br_immed_e1[12:1]}),
                             .dout({i0_rs1_e2[31:0], i0_rs2_e2[31:0], i0_br_immed_e2[12:1]})
                             );
+   */
+   rvdffe #(80) i0_src_e2_ff (.*,
+                            .en(i0_e2_data_en),
+                            .din( {i0_rs1_e1[31:0], i0_rs2_e1[31:0], i0_br_immed_e1[17:2]}),
+                            .dout({i0_rs1_e2[31:0], i0_rs2_e2[31:0], i0_br_immed_e2[17:2]})
+                            );
 
+   // wyj br
+   /*
    rvdffe #(76) i0_src_e3_ff (.*,
                             .en(i0_e3_data_en),
                             .din( {i0_rs1_e2_final[31:0], i0_rs2_e2_final[31:0], i0_br_immed_e2[12:1]}),
                             .dout({i0_rs1_e3[31:0], i0_rs2_e3[31:0], i0_br_immed_e3[12:1]})
                             );
+   */
+   rvdffe #(80) i0_src_e3_ff (.*,
+                            .en(i0_e3_data_en),
+                            .din( {i0_rs1_e2_final[31:0], i0_rs2_e2_final[31:0], i0_br_immed_e2[17:2]}),
+                            .dout({i0_rs1_e3[31:0], i0_rs2_e3[31:0], i0_br_immed_e3[17:2]})
+                            );
 
 
 
+   // wyj br
+   /*
    rvdffe #(76) i1_src_e1_ff (.*,
                             .en(i1_e1_data_en),
                             .din( {i1_rs1_d[31:0], i1_rs2_d[31:0], dec_i1_br_immed_d[12:1]}),
                             .dout({i1_rs1_e1[31:0], i1_rs2_e1[31:0], i1_br_immed_e1[12:1]})
                             );
+   */
+   rvdffe #(80) i1_src_e1_ff (.*,
+                            .en(i1_e1_data_en),
+                            .din( {i1_rs1_d[31:0], i1_rs2_d[31:0], dec_i1_br_immed_d[17:2]}),
+                            .dout({i1_rs1_e1[31:0], i1_rs2_e1[31:0], i1_br_immed_e1[17:2]})
+                            );
 
+   // wyj br
+   /*
    rvdffe #(76) i1_src_e2_ff (.*,
                             .en(i1_e2_data_en),
                             .din( {i1_rs1_e1[31:0], i1_rs2_e1[31:0], i1_br_immed_e1[12:1]}),
                             .dout({i1_rs1_e2[31:0], i1_rs2_e2[31:0], i1_br_immed_e2[12:1]})
                             );
+   */
+   rvdffe #(80) i1_src_e2_ff (.*,
+                            .en(i1_e2_data_en),
+                            .din( {i1_rs1_e1[31:0], i1_rs2_e1[31:0], i1_br_immed_e1[17:2]}),
+                            .dout({i1_rs1_e2[31:0], i1_rs2_e2[31:0], i1_br_immed_e2[17:2]})
+                            );
 
+   // wyj br
+   /*
    rvdffe #(76) i1_src_e3_ff (.*,
                             .en(i1_e3_data_en),
                             .din( {i1_rs1_e2_final[31:0], i1_rs2_e2_final[31:0], i1_br_immed_e2[12:1]}),
                             .dout({i1_rs1_e3[31:0], i1_rs2_e3[31:0], i1_br_immed_e3[12:1]})
                             );
+                            */
+   rvdffe #(80) i1_src_e3_ff (.*,
+                            .en(i1_e3_data_en),
+                            .din( {i1_rs1_e2_final[31:0], i1_rs2_e2_final[31:0], i1_br_immed_e2[17:2]}),
+                            .dout({i1_rs1_e3[31:0], i1_rs2_e3[31:0], i1_br_immed_e3[17:2]})
+                            );                    
 
 
 
@@ -598,7 +684,9 @@ module exu
                           .a             ( i0_rs1_e3_final[31:0]       ),   // I
                           .b             ( i0_rs2_e3_final[31:0]       ),   // I
                           .pc            ( dec_i0_pc_e3[31:1]          ),   // I
-                          .brimm         ( i0_br_immed_e3[12:1]        ),   // I
+                          // wyj br
+                          // .brimm         ( i0_br_immed_e3[12:1]        ),   // I
+                          .brimm         ( i0_br_immed_e3[17:2]        ),   // I
                           .ap            ( i0_ap_e4                    ),   // I
                           .out           ( exu_i0_result_e4[31:0]      ),   // O
                           .flush_upper   ( exu_i0_flush_lower_e4       ),   // O
@@ -618,7 +706,9 @@ module exu
                           .a             ( i1_rs1_e3_final[31:0]       ),   // I
                           .b             ( i1_rs2_e3_final[31:0]       ),   // I
                           .pc            ( dec_i1_pc_e3[31:1]          ),   // I
-                          .brimm         ( i1_br_immed_e3[12:1]        ),   // I
+                          // wyj br
+                          // .brimm         ( i1_br_immed_e3[12:1]        ),   // I
+                          .brimm         ( i1_br_immed_e3[17:2]        ),   // I
                           .ap            ( i1_ap_e4                    ),   // I
                           .out           ( exu_i1_result_e4[31:0]      ),   // O
                           .flush_upper   ( exu_i1_flush_lower_e4       ),   // O
@@ -700,7 +790,9 @@ module exu
    assign exu_mp_pkt.boffset                                = final_predict_mp_ff.boffset;
    assign exu_mp_pkt.pc4                                    = final_predict_mp_ff.pc4;
    assign exu_mp_pkt.hist[1:0]                              = final_predict_mp_ff.hist[1:0];
-   assign exu_mp_pkt.toffset[11:0]                          = final_predict_mp_ff.toffset[11:0];
+   // wyj br
+   // assign exu_mp_pkt.toffset[11:0]                          = final_predict_mp_ff.toffset[11:0];
+   assign exu_mp_pkt.toffset[15:0]                          = final_predict_mp_ff.toffset[15:0];
    assign exu_mp_pkt.index[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] = final_predict_mp_ff.index[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO];
    assign exu_mp_pkt.bank[1:0]                              = final_predict_mp_ff.bank[1:0];
    assign exu_mp_pkt.btag[`RV_BTB_BTAG_SIZE-1:0]            = final_predict_mp_ff.btag[`RV_BTB_BTAG_SIZE-1:0];

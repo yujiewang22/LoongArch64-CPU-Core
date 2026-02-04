@@ -84,14 +84,18 @@ module ifu_bp_ctl
    output logic [7:0] ifu_bp_ret_f2, // predicted ret
    output logic [7:0] ifu_bp_hist1_f2, // history counters for all 4 potential branches, bit 1, right justified
    output logic [7:0] ifu_bp_hist0_f2, // history counters for all 4 potential branches, bit 0, right justified
-   output logic [11:0] ifu_bp_poffset_f2, // predicted target
+   // wyj br
+   // output logic [11:0] ifu_bp_poffset_f2, // predicted target
+   output logic [15:0] ifu_bp_poffset_f2, // predicted target
    output logic [7:0] ifu_bp_pc4_f2, // pc4 indication, right justified
    output logic [7:0] ifu_bp_valid_f2, // branch valid, right justified
 
    input  logic       scan_mode
    );
 
-`define TAG 16+`RV_BTB_BTAG_SIZE:17
+// wyj br
+// `define TAG 16+`RV_BTB_BTAG_SIZE:17
+`define TAG 20+`RV_BTB_BTAG_SIZE:21
 
    localparam PC4=4;
    localparam BOFF=3;
@@ -114,7 +118,9 @@ module ifu_bp_ctl
    logic exu_mp_ret; // branch is a ret inst
    logic exu_mp_ja; // branch is a jump always
    logic [1:0] exu_mp_hist; // new history
-   logic [11:0] exu_mp_tgt; // target offset
+   // wyj br
+   // logic [11:0] exu_mp_tgt; // target offset
+   logic [15:0] exu_mp_tgt; // target offset
    logic [`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] exu_mp_addr; // BTB/BHT address
    logic [1:0]                             exu_mp_bank; // write bank; based on branch PC[3:2]
    logic [`RV_BTB_BTAG_SIZE-1:0]           exu_mp_btag; // branch tag
@@ -140,7 +146,9 @@ module ifu_bp_ctl
    logic [`RV_RET_STACK_SIZE-1:0]       rsenable;
 
 
-   logic [11:0]       btb_rd_tgt_f2;
+   // wyj br
+   // logic [11:0]       btb_rd_tgt_f2;
+   logic [15:0]       btb_rd_tgt_f2;
    logic              btb_rd_pc4_f2, btb_rd_boffset_f2,  btb_rd_call_f2, btb_rd_ret_f2;
    logic [3:1]        bp_total_branch_offset_f2;
 
@@ -149,7 +157,9 @@ module ifu_bp_ctl
    logic              rs_push, rs_pop, rs_hold;
    logic [`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] btb_rd_addr_f1, btb_wr_addr, btb_rd_addr_f2;
    logic [`RV_BTB_BTAG_SIZE-1:0] btb_wr_tag, fetch_rd_tag_f1, fetch_rd_tag_f2;
-   logic [16+`RV_BTB_BTAG_SIZE:0]        btb_wr_data;
+   // wyj br
+   // logic [16+`RV_BTB_BTAG_SIZE:0]        btb_wr_data;
+   logic [20+`RV_BTB_BTAG_SIZE:0]        btb_wr_data;
    logic [3:0]         btb_wr_en_way0, btb_wr_en_way1;
 
 
@@ -173,6 +183,8 @@ module ifu_bp_ctl
 
    logic leak_one_f1, leak_one_f2, ifc_fetch_req_f2_raw;
 
+   // wyj br
+   /*
    logic [LRU_SIZE-1:0][16+`RV_BTB_BTAG_SIZE:0]  btb_bank0_rd_data_way0_out ;
    logic [LRU_SIZE-1:0][16+`RV_BTB_BTAG_SIZE:0]  btb_bank1_rd_data_way0_out ;
    logic [LRU_SIZE-1:0][16+`RV_BTB_BTAG_SIZE:0]  btb_bank2_rd_data_way0_out ;
@@ -203,6 +215,37 @@ module ifu_bp_ctl
    logic                [16+`RV_BTB_BTAG_SIZE:0] btb_bank1_rd_data_way1_f2 ;
    logic                [16+`RV_BTB_BTAG_SIZE:0] btb_bank2_rd_data_way1_f2 ;
    logic                [16+`RV_BTB_BTAG_SIZE:0] btb_bank3_rd_data_way1_f2 ;
+   */
+   logic [LRU_SIZE-1:0][20+`RV_BTB_BTAG_SIZE:0]  btb_bank0_rd_data_way0_out ;
+   logic [LRU_SIZE-1:0][20+`RV_BTB_BTAG_SIZE:0]  btb_bank1_rd_data_way0_out ;
+   logic [LRU_SIZE-1:0][20+`RV_BTB_BTAG_SIZE:0]  btb_bank2_rd_data_way0_out ;
+   logic [LRU_SIZE-1:0][20+`RV_BTB_BTAG_SIZE:0]  btb_bank3_rd_data_way0_out ;
+
+   logic [LRU_SIZE-1:0][20+`RV_BTB_BTAG_SIZE:0]  btb_bank0_rd_data_way1_out ;
+   logic [LRU_SIZE-1:0][20+`RV_BTB_BTAG_SIZE:0]  btb_bank1_rd_data_way1_out ;
+   logic [LRU_SIZE-1:0][20+`RV_BTB_BTAG_SIZE:0]  btb_bank2_rd_data_way1_out ;
+   logic [LRU_SIZE-1:0][20+`RV_BTB_BTAG_SIZE:0]  btb_bank3_rd_data_way1_out ;
+
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank0_rd_data_way0_f2_in ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank1_rd_data_way0_f2_in ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank2_rd_data_way0_f2_in ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank3_rd_data_way0_f2_in ;
+
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank0_rd_data_way1_f2_in ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank1_rd_data_way1_f2_in ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank2_rd_data_way1_f2_in ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank3_rd_data_way1_f2_in ;
+
+
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank0_rd_data_way0_f2 ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank1_rd_data_way0_f2 ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank2_rd_data_way0_f2 ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank3_rd_data_way0_f2 ;
+
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank0_rd_data_way1_f2 ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank1_rd_data_way1_f2 ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank2_rd_data_way1_f2 ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank3_rd_data_way1_f2 ;
 
    logic                                         final_h;
    logic                                         btb_fg_crossing_f2;
@@ -210,6 +253,8 @@ module ifu_bp_ctl
    logic                                         middle_of_bank;
 
 `ifdef RV_BTB_48
+   // wyj br
+   /*
    logic                [16+`RV_BTB_BTAG_SIZE:0] btb_bank0_rd_data_way2_f2_in ;
    logic                [16+`RV_BTB_BTAG_SIZE:0] btb_bank1_rd_data_way2_f2_in ;
    logic                [16+`RV_BTB_BTAG_SIZE:0] btb_bank2_rd_data_way2_f2_in ;
@@ -222,6 +267,19 @@ module ifu_bp_ctl
    logic [LRU_SIZE-1:0][16+`RV_BTB_BTAG_SIZE:0]  btb_bank1_rd_data_way2_out ;
    logic [LRU_SIZE-1:0][16+`RV_BTB_BTAG_SIZE:0]  btb_bank2_rd_data_way2_out ;
    logic [LRU_SIZE-1:0][16+`RV_BTB_BTAG_SIZE:0]  btb_bank3_rd_data_way2_out ;
+   */
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank0_rd_data_way2_f2_in ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank1_rd_data_way2_f2_in ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank2_rd_data_way2_f2_in ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank3_rd_data_way2_f2_in ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank0_rd_data_way2_f2 ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank1_rd_data_way2_f2 ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank2_rd_data_way2_f2 ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank3_rd_data_way2_f2 ;
+   logic [LRU_SIZE-1:0][20+`RV_BTB_BTAG_SIZE:0]  btb_bank0_rd_data_way2_out ;
+   logic [LRU_SIZE-1:0][20+`RV_BTB_BTAG_SIZE:0]  btb_bank1_rd_data_way2_out ;
+   logic [LRU_SIZE-1:0][20+`RV_BTB_BTAG_SIZE:0]  btb_bank2_rd_data_way2_out ;
+   logic [LRU_SIZE-1:0][20+`RV_BTB_BTAG_SIZE:0]  btb_bank3_rd_data_way2_out ;
    logic [3:0]                                   btb_wr_en_way2, tag_match_way2_f2, fetch_lru_bank_hit_f2;
    logic [7:0]                                   tag_match_way2_expanded_f2;
 
@@ -231,6 +289,8 @@ module ifu_bp_ctl
    logic exu_mp_way, exu_mp_way_f, dec_tlu_br0_way_wb, dec_tlu_br1_way_wb, dec_tlu_way_wb, dec_tlu_way_wb_f;
 
 `endif
+   // wyj br
+   /*
    logic                [16+`RV_BTB_BTAG_SIZE:0] btb_bank0e_rd_data_f2 ;
    logic                [16+`RV_BTB_BTAG_SIZE:0] btb_bank1e_rd_data_f2 ;
    logic                [16+`RV_BTB_BTAG_SIZE:0] btb_bank2e_rd_data_f2 ;
@@ -240,6 +300,16 @@ module ifu_bp_ctl
    logic                [16+`RV_BTB_BTAG_SIZE:0] btb_bank1o_rd_data_f2 ;
    logic                [16+`RV_BTB_BTAG_SIZE:0] btb_bank2o_rd_data_f2 ;
    logic                [16+`RV_BTB_BTAG_SIZE:0] btb_bank3o_rd_data_f2 ;
+   */
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank0e_rd_data_f2 ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank1e_rd_data_f2 ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank2e_rd_data_f2 ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank3e_rd_data_f2 ;
+
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank0o_rd_data_f2 ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank1o_rd_data_f2 ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank2o_rd_data_f2 ;
+   logic                [20+`RV_BTB_BTAG_SIZE:0] btb_bank3o_rd_data_f2 ;
 
    logic [7:0] tag_match_way0_expanded_f2, tag_match_way1_expanded_f2;
 
@@ -261,7 +331,9 @@ module ifu_bp_ctl
    assign exu_mp_ja = exu_mp_pkt.pja;  // branch is a jump always
    assign exu_mp_way = exu_mp_pkt.way;  // repl way
    assign exu_mp_hist[1:0] = exu_mp_pkt.hist[1:0];  // new history
-   assign exu_mp_tgt[11:0]  = exu_mp_pkt.toffset[11:0] ;  // target offset
+   // wyj br
+   // assign exu_mp_tgt[11:0]  = exu_mp_pkt.toffset[11:0] ;  // target offset
+   assign exu_mp_tgt[15:0]  = exu_mp_pkt.toffset[15:0] ;  // target offset
    assign exu_mp_addr[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO]  = exu_mp_pkt.index[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] ;  // BTB/BHT address
    assign exu_mp_bank[1:0]  = exu_mp_pkt.bank[1:0] ;  // write bank = exu_mp_pkt.;  based on branch PC[3:2]
    assign exu_mp_btag[`RV_BTB_BTAG_SIZE-1:0]  = exu_mp_pkt.btag[`RV_BTB_BTAG_SIZE-1:0] ;  // branch tag
@@ -599,6 +671,8 @@ assign btb_vmask_raw_f2[1] = (ifc_fetch_addr_f2[3] & ifc_fetch_addr_f2[2]
 
    assign wayhit_f2[7:0] = tag_match_way0_expanded_f2[7:0] | tag_match_way1_expanded_f2[7:0] | tag_match_way2_expanded_f2[7:0];
 
+   // wyj br
+   /*
    assign btb_bank3o_rd_data_f2[16+`RV_BTB_BTAG_SIZE:0] = ( ({17+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[7]}} & btb_bank3_rd_data_way0_f2[16+`RV_BTB_BTAG_SIZE:0]) |
                                                             ({17+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[7]}} & btb_bank3_rd_data_way1_f2[16+`RV_BTB_BTAG_SIZE:0]) |
                                                             ({17+`RV_BTB_BTAG_SIZE{tag_match_way2_expanded_f2[7]}} & btb_bank3_rd_data_way2_f2[16+`RV_BTB_BTAG_SIZE:0]) );
@@ -626,11 +700,41 @@ assign btb_vmask_raw_f2[1] = (ifc_fetch_addr_f2[3] & ifc_fetch_addr_f2[2]
    assign btb_bank0e_rd_data_f2[16+`RV_BTB_BTAG_SIZE:0] = ( ({17+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[0]}} & btb_bank0_rd_data_way0_f2[16+`RV_BTB_BTAG_SIZE:0]) |
                                                             ({17+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[0]}} & btb_bank0_rd_data_way1_f2[16+`RV_BTB_BTAG_SIZE:0]) |
                                                             ({17+`RV_BTB_BTAG_SIZE{tag_match_way2_expanded_f2[0]}} & btb_bank0_rd_data_way2_f2[16+`RV_BTB_BTAG_SIZE:0]) );
+   */
+   assign btb_bank3o_rd_data_f2[20+`RV_BTB_BTAG_SIZE:0] = ( ({21+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[7]}} & btb_bank3_rd_data_way0_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[7]}} & btb_bank3_rd_data_way1_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way2_expanded_f2[7]}} & btb_bank3_rd_data_way2_f2[20+`RV_BTB_BTAG_SIZE:0]) );
+   assign btb_bank3e_rd_data_f2[20+`RV_BTB_BTAG_SIZE:0] = ( ({21+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[6]}} & btb_bank3_rd_data_way0_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[6]}} & btb_bank3_rd_data_way1_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way2_expanded_f2[6]}} & btb_bank3_rd_data_way2_f2[20+`RV_BTB_BTAG_SIZE:0]) );
+
+   assign btb_bank2o_rd_data_f2[20+`RV_BTB_BTAG_SIZE:0] = ( ({21+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[5]}} & btb_bank2_rd_data_way0_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[5]}} & btb_bank2_rd_data_way1_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way2_expanded_f2[5]}} & btb_bank2_rd_data_way2_f2[20+`RV_BTB_BTAG_SIZE:0]) );
+   assign btb_bank2e_rd_data_f2[20+`RV_BTB_BTAG_SIZE:0] = ( ({21+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[4]}} & btb_bank2_rd_data_way0_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[4]}} & btb_bank2_rd_data_way1_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way2_expanded_f2[4]}} & btb_bank2_rd_data_way2_f2[20+`RV_BTB_BTAG_SIZE:0]) );
+
+   assign btb_bank1o_rd_data_f2[20+`RV_BTB_BTAG_SIZE:0] = ( ({21+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[3]}} & btb_bank1_rd_data_way0_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[3]}} & btb_bank1_rd_data_way1_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way2_expanded_f2[3]}} & btb_bank1_rd_data_way2_f2[20+`RV_BTB_BTAG_SIZE:0]) );
+   assign btb_bank1e_rd_data_f2[20+`RV_BTB_BTAG_SIZE:0] = ( ({21+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[2]}} & btb_bank1_rd_data_way0_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[2]}} & btb_bank1_rd_data_way1_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way2_expanded_f2[2]}} & btb_bank1_rd_data_way2_f2[20+`RV_BTB_BTAG_SIZE:0]) );
+
+   assign btb_bank0o_rd_data_f2[20+`RV_BTB_BTAG_SIZE:0] = ( ({21+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[1]}} & btb_bank0_rd_data_way0_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[1]}} & btb_bank0_rd_data_way1_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way2_expanded_f2[1]}} & btb_bank0_rd_data_way2_f2[20+`RV_BTB_BTAG_SIZE:0]) );
+   assign btb_bank0e_rd_data_f2[20+`RV_BTB_BTAG_SIZE:0] = ( ({21+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[0]}} & btb_bank0_rd_data_way0_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[0]}} & btb_bank0_rd_data_way1_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way2_expanded_f2[0]}} & btb_bank0_rd_data_way2_f2[20+`RV_BTB_BTAG_SIZE:0]) );
 
 
 `else // !`ifdef RV_BTB_48
 
    assign wayhit_f2[7:0] = tag_match_way0_expanded_f2[7:0] | tag_match_way1_expanded_f2[7:0];
+   // wyj br
+   /*
    assign btb_bank3o_rd_data_f2[16+`RV_BTB_BTAG_SIZE:0] = ( ({17+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[7]}} & btb_bank3_rd_data_way0_f2[16+`RV_BTB_BTAG_SIZE:0]) |
                                                             ({17+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[7]}} & btb_bank3_rd_data_way1_f2[16+`RV_BTB_BTAG_SIZE:0]) );
    assign btb_bank3e_rd_data_f2[16+`RV_BTB_BTAG_SIZE:0] = ( ({17+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[6]}} & btb_bank3_rd_data_way0_f2[16+`RV_BTB_BTAG_SIZE:0]) |
@@ -650,6 +754,26 @@ assign btb_vmask_raw_f2[1] = (ifc_fetch_addr_f2[3] & ifc_fetch_addr_f2[2]
                                                             ({17+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[1]}} & btb_bank0_rd_data_way1_f2[16+`RV_BTB_BTAG_SIZE:0]) );
    assign btb_bank0e_rd_data_f2[16+`RV_BTB_BTAG_SIZE:0] = ( ({17+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[0]}} & btb_bank0_rd_data_way0_f2[16+`RV_BTB_BTAG_SIZE:0]) |
                                                             ({17+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[0]}} & btb_bank0_rd_data_way1_f2[16+`RV_BTB_BTAG_SIZE:0]) );
+   */
+   assign btb_bank3o_rd_data_f2[20+`RV_BTB_BTAG_SIZE:0] = ( ({21+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[7]}} & btb_bank3_rd_data_way0_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[7]}} & btb_bank3_rd_data_way1_f2[20+`RV_BTB_BTAG_SIZE:0]) );
+   assign btb_bank3e_rd_data_f2[20+`RV_BTB_BTAG_SIZE:0] = ( ({21+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[6]}} & btb_bank3_rd_data_way0_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[6]}} & btb_bank3_rd_data_way1_f2[20+`RV_BTB_BTAG_SIZE:0]) );
+
+   assign btb_bank2o_rd_data_f2[20+`RV_BTB_BTAG_SIZE:0] = ( ({21+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[5]}} & btb_bank2_rd_data_way0_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[5]}} & btb_bank2_rd_data_way1_f2[20+`RV_BTB_BTAG_SIZE:0]) );
+   assign btb_bank2e_rd_data_f2[20+`RV_BTB_BTAG_SIZE:0] = ( ({21+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[4]}} & btb_bank2_rd_data_way0_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[4]}} & btb_bank2_rd_data_way1_f2[20+`RV_BTB_BTAG_SIZE:0]) );
+
+   assign btb_bank1o_rd_data_f2[20+`RV_BTB_BTAG_SIZE:0] = ( ({21+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[3]}} & btb_bank1_rd_data_way0_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[3]}} & btb_bank1_rd_data_way1_f2[20+`RV_BTB_BTAG_SIZE:0]) );
+   assign btb_bank1e_rd_data_f2[20+`RV_BTB_BTAG_SIZE:0] = ( ({21+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[2]}} & btb_bank1_rd_data_way0_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[2]}} & btb_bank1_rd_data_way1_f2[20+`RV_BTB_BTAG_SIZE:0]) );
+
+   assign btb_bank0o_rd_data_f2[20+`RV_BTB_BTAG_SIZE:0] = ( ({21+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[1]}} & btb_bank0_rd_data_way0_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[1]}} & btb_bank0_rd_data_way1_f2[20+`RV_BTB_BTAG_SIZE:0]) );
+   assign btb_bank0e_rd_data_f2[20+`RV_BTB_BTAG_SIZE:0] = ( ({21+`RV_BTB_BTAG_SIZE{tag_match_way0_expanded_f2[0]}} & btb_bank0_rd_data_way0_f2[20+`RV_BTB_BTAG_SIZE:0]) |
+                                                            ({21+`RV_BTB_BTAG_SIZE{tag_match_way1_expanded_f2[0]}} & btb_bank0_rd_data_way1_f2[20+`RV_BTB_BTAG_SIZE:0]) );
 
 `endif
 
@@ -876,6 +1000,8 @@ end // block: LRU_rd_mux
 
    // mux out critical hit bank for pc computation
    // This is only useful for the first taken branch in the fetch group
+   // wyj br
+   /*
    logic [16:1] btb_sel_data_f2;
    assign {
            btb_rd_tgt_f2[11:0],
@@ -892,6 +1018,23 @@ end // block: LRU_rd_mux
                                     ({16{btb_sel_f2[2]}} & btb_bank1e_rd_data_f2[16:1]) |
                                     ({16{btb_sel_f2[1]}} & btb_bank0o_rd_data_f2[16:1]) |
                                     ({16{btb_sel_f2[0]}} & btb_bank0e_rd_data_f2[16:1]) );
+   */
+   logic [20:1] btb_sel_data_f2;
+   assign {
+           btb_rd_tgt_f2[15:0],
+           btb_rd_pc4_f2,
+           btb_rd_boffset_f2,
+           btb_rd_call_f2,
+           btb_rd_ret_f2} = btb_sel_data_f2[20:1];
+
+   assign btb_sel_data_f2[20:1] = ( ({20{btb_sel_f2[7]}} & btb_bank3o_rd_data_f2[20:1]) |
+                                    ({20{btb_sel_f2[6]}} & btb_bank3e_rd_data_f2[20:1]) |
+                                    ({20{btb_sel_f2[5]}} & btb_bank2o_rd_data_f2[20:1]) |
+                                    ({20{btb_sel_f2[4]}} & btb_bank2e_rd_data_f2[20:1]) |
+                                    ({20{btb_sel_f2[3]}} & btb_bank1o_rd_data_f2[20:1]) |
+                                    ({20{btb_sel_f2[2]}} & btb_bank1e_rd_data_f2[20:1]) |
+                                    ({20{btb_sel_f2[1]}} & btb_bank0o_rd_data_f2[20:1]) |
+                                    ({20{btb_sel_f2[0]}} & btb_bank0e_rd_data_f2[20:1]) );
 
 
    logic [7:0] bp_valid_f2, bp_hist1_f2;
@@ -1128,13 +1271,17 @@ assign fgmask_f2[0] = (~ifc_fetch_addr_f2[3] & ~ifc_fetch_addr_f2[2]
    logic [31:4] adder_pc_in_f2, ifc_fetch_adder_prior;
    rvdffe #(28) faddrf2_ff (.*, .en(ifc_fetch_req_f2 & ~ifu_bp_kill_next_f2 & ic_hit_f2), .din(ifc_fetch_addr_f2[31:4]), .dout(ifc_fetch_adder_prior[31:4]));
 
-   assign ifu_bp_poffset_f2[11:0] = btb_rd_tgt_f2[11:0];
+   // wyj br
+   // assign ifu_bp_poffset_f2[11:0] = btb_rd_tgt_f2[11:0];
+   assign ifu_bp_poffset_f2[15:0] = btb_rd_tgt_f2[15:0];
 
    assign adder_pc_in_f2[31:4] = ( ({28{ btb_fg_crossing_f2}} & ifc_fetch_adder_prior[31:4]) |
                                    ({28{~btb_fg_crossing_f2}} & ifc_fetch_addr_f2[31:4]));
 
    rvbradder predtgt_addr (.pc({adder_pc_in_f2[31:4], bp_total_branch_offset_f2[3:1]}),
-                         .offset(btb_rd_tgt_f2[11:0]),
+                         // wyj br
+                         // .offset(btb_rd_tgt_f2[11:0]),
+                         .offset(btb_rd_tgt_f2[15:0]),
                          .dout(bp_btb_target_adder_f2[31:1])
                          );
    // mux in the return stack address here for a predicted return
@@ -1146,7 +1293,9 @@ assign fgmask_f2[0] = (~ifc_fetch_addr_f2[3] & ~ifc_fetch_addr_f2[2]
    // ----------------------------------------------------------------------
 
    rvbradder rs_addr (.pc({adder_pc_in_f2[31:4], bp_total_branch_offset_f2[3:1]}),
-                    .offset({10'b0, btb_rd_pc4_f2, ~btb_rd_pc4_f2}),
+                    // wyj br
+                    // .offset({10'b0, btb_rd_pc4_f2, ~btb_rd_pc4_f2}),
+                    .offset({15'b0, btb_rd_pc4_f2}),
                     .dout(bp_rs_call_target_f2[31:1])
                          );
 
@@ -1240,11 +1389,15 @@ assign fgmask_f2[0] = (~ifc_fetch_addr_f2[3] & ~ifc_fetch_addr_f2[2]
    assign e1_rs_hold = (~e1_rs_push1 & ~e1_rs_push2 & ~e1_rs_pop1 & ~e1_rs_pop2 & ~e4_rs_correct);
 
    rvbradder e1_rs_addr0 (.pc({exu_i0_pc_e1[31:1]}),
-                        .offset({10'b0, exu_rets_e1_pkt.pc0_pc4, ~exu_rets_e1_pkt.pc0_pc4}),
+                        // wyj br
+                        // .offset({10'b0, exu_rets_e1_pkt.pc0_pc4, ~exu_rets_e1_pkt.pc0_pc4}),
+                        .offset({15'b0, exu_rets_e1_pkt.pc0_pc4}),
                         .dout(e1_rs_call0_target_f2[31:1])
                         );
    rvbradder e1_rs_addr1 (.pc({exu_i1_pc_e1[31:1]}),
-                        .offset({10'b0, exu_rets_e1_pkt.pc1_pc4, ~exu_rets_e1_pkt.pc1_pc4}),
+                        // wyj br
+                        // .offset({10'b0, exu_rets_e1_pkt.pc1_pc4, ~exu_rets_e1_pkt.pc1_pc4}),
+                        .offset({15'b0, exu_rets_e1_pkt.pc1_pc4}),
                         .dout(e1_rs_call1_target_f2[31:1])
                         );
 
@@ -1302,11 +1455,15 @@ assign fgmask_f2[0] = (~ifc_fetch_addr_f2[3] & ~ifc_fetch_addr_f2[2]
    assign e4_rs_hold = (~e4_rs_push1 & ~e4_rs_push2 & ~e4_rs_pop1 & ~e4_rs_pop2);
 
    rvbradder e4_rs_addr0 (.pc({dec_tlu_i0_pc_e4[31:1]}),
-                        .offset({10'b0, exu_rets_e4_pkt.pc0_pc4, ~exu_rets_e4_pkt.pc0_pc4}),
+                        // wyj br
+                        // .offset({10'b0, exu_rets_e4_pkt.pc0_pc4, ~exu_rets_e4_pkt.pc0_pc4}),
+                        .offset({15'b0, exu_rets_e4_pkt.pc0_pc4}),
                         .dout(e4_rs_call0_target_f2[31:1])
                         );
    rvbradder e4_rs_addr1 (.pc({dec_tlu_i1_pc_e4[31:1]}),
-                        .offset({10'b0, exu_rets_e4_pkt.pc1_pc4, ~exu_rets_e4_pkt.pc1_pc4}),
+                        // wyj br
+                        // .offset({10'b0, exu_rets_e4_pkt.pc1_pc4, ~exu_rets_e4_pkt.pc1_pc4}),
+                        .offset({15'b0, exu_rets_e4_pkt.pc1_pc4}),
                         .dout(e4_rs_call1_target_f2[31:1])
                         );
 
@@ -1373,7 +1530,9 @@ assign fgmask_f2[0] = (~ifc_fetch_addr_f2[3] & ~ifc_fetch_addr_f2[2]
    rvbtb_tag_hash rdtagf1(.hash(fetch_rd_tag_f1[`RV_BTB_BTAG_SIZE-1:0]), .pc({ifc_fetch_addr_f1[31:4], 3'b0}));
    rvdff #(`RV_BTB_BTAG_SIZE) rdtagf (.*, .clk(active_clk), .din({fetch_rd_tag_f1[`RV_BTB_BTAG_SIZE-1:0]}), .dout({fetch_rd_tag_f2[`RV_BTB_BTAG_SIZE-1:0]}));
 
-   assign btb_wr_data[16+`RV_BTB_BTAG_SIZE:0] = {btb_wr_tag[`RV_BTB_BTAG_SIZE-1:0], exu_mp_tgt[11:0], exu_mp_pc4, exu_mp_boffset, exu_mp_call | exu_mp_ja, exu_mp_ret | exu_mp_ja, btb_valid} ;
+      // wyj br
+   // assign btb_wr_data[16+`RV_BTB_BTAG_SIZE:0] = {btb_wr_tag[`RV_BTB_BTAG_SIZE-1:0], exu_mp_tgt[11:0], exu_mp_pc4, exu_mp_boffset, exu_mp_call | exu_mp_ja, exu_mp_ret | exu_mp_ja, btb_valid} ;
+   assign btb_wr_data[20+`RV_BTB_BTAG_SIZE:0] = {btb_wr_tag[`RV_BTB_BTAG_SIZE-1:0], exu_mp_tgt[15:0], exu_mp_pc4, exu_mp_boffset, exu_mp_call | exu_mp_ja, exu_mp_ret | exu_mp_ja, btb_valid} ;
 
    assign exu_mp_valid_write = exu_mp_valid & exu_mp_ataken;
 `ifdef RV_BTB_48
@@ -1441,6 +1600,8 @@ assign fgmask_f2[0] = (~ifc_fetch_addr_f2[3] & ~ifc_fetch_addr_f2[2]
 
     for (j=0 ; j<LRU_SIZE ; j++) begin : BTB_FLOPS
       // Way 0
+          // wyj br
+          /*
           rvdffe #(17+`RV_BTB_BTAG_SIZE) btb_bank0_way0 (.*,
                     .en(((btb_wr_addr[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] == j) & btb_wr_en_way0[0])),
                     .din        (btb_wr_data[16+`RV_BTB_BTAG_SIZE:0]),
@@ -1503,8 +1664,73 @@ assign fgmask_f2[0] = (~ifc_fetch_addr_f2[3] & ~ifc_fetch_addr_f2[2]
                     .din        (btb_wr_data[16+`RV_BTB_BTAG_SIZE:0]),
                     .dout       (btb_bank3_rd_data_way2_out[j]));
 `endif
+          */
+          rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank0_way0 (.*,
+                    .en(((btb_wr_addr[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] == j) & btb_wr_en_way0[0])),
+                    .din        (btb_wr_data[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank0_rd_data_way0_out[j]));
+
+          rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank1_way0 (.*,
+                    .en(((btb_wr_addr[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] == j) & btb_wr_en_way0[1])),
+                    .din        (btb_wr_data[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank1_rd_data_way0_out[j]));
+
+          rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank2_way0 (.*,
+                    .en(((btb_wr_addr[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] == j) & btb_wr_en_way0[2])),
+                    .din        (btb_wr_data[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank2_rd_data_way0_out[j]));
+
+          rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank3_way0 (.*,
+                    .en(((btb_wr_addr[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] == j) & btb_wr_en_way0[3])),
+                    .din        (btb_wr_data[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank3_rd_data_way0_out[j]));
+
+      // Way 1
+          rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank0_way1 (.*,
+                    .en(((btb_wr_addr[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] == j) & btb_wr_en_way1[0])),
+                    .din        (btb_wr_data[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank0_rd_data_way1_out[j]));
+
+          rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank1_way1 (.*,
+                    .en(((btb_wr_addr[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] == j) & btb_wr_en_way1[1])),
+                    .din        (btb_wr_data[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank1_rd_data_way1_out[j]));
+
+          rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank2_way1 (.*,
+                    .en(((btb_wr_addr[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] == j) & btb_wr_en_way1[2])),
+                    .din        (btb_wr_data[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank2_rd_data_way1_out[j]));
+
+          rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank3_way1 (.*,
+                    .en(((btb_wr_addr[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] == j) & btb_wr_en_way1[3])),
+                    .din        (btb_wr_data[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank3_rd_data_way1_out[j]));
+`ifdef RV_BTB_48
+      // Way 2
+          rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank0_way2 (.*,
+                    .en(((btb_wr_addr[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] == j) & btb_wr_en_way2[0])),
+                    .din        (btb_wr_data[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank0_rd_data_way2_out[j]));
+
+          rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank1_way2 (.*,
+                    .en(((btb_wr_addr[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] == j) & btb_wr_en_way2[1])),
+                    .din        (btb_wr_data[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank1_rd_data_way2_out[j]));
+
+          rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank2_way2 (.*,
+                    .en(((btb_wr_addr[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] == j) & btb_wr_en_way2[2])),
+                    .din        (btb_wr_data[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank2_rd_data_way2_out[j]));
+
+          rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank3_way2 (.*,
+                    .en(((btb_wr_addr[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] == j) & btb_wr_en_way2[3])),
+                    .din        (btb_wr_data[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank3_rd_data_way2_out[j]));
+`endif
     end
 
+   // wyj br
+   /*
    rvdffe #(17+`RV_BTB_BTAG_SIZE) btb_bank0_way0_data_out (.*,
                     .en(ifc_fetch_req_f1),
                     .din        (btb_bank0_rd_data_way0_f2_in[16+`RV_BTB_BTAG_SIZE:0]),
@@ -1544,8 +1770,50 @@ assign fgmask_f2[0] = (~ifc_fetch_addr_f2[3] & ~ifc_fetch_addr_f2[2]
                     .en(ifc_fetch_req_f1),
                     .din        (btb_bank3_rd_data_way1_f2_in[16+`RV_BTB_BTAG_SIZE:0]),
                     .dout       (btb_bank3_rd_data_way1_f2   [16+`RV_BTB_BTAG_SIZE:0]));
+   */
+   rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank0_way0_data_out (.*,
+                    .en(ifc_fetch_req_f1),
+                    .din        (btb_bank0_rd_data_way0_f2_in[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank0_rd_data_way0_f2   [20+`RV_BTB_BTAG_SIZE:0]));
+
+   rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank1_way0_data_out (.*,
+                    .en(ifc_fetch_req_f1),
+                    .din        (btb_bank1_rd_data_way0_f2_in[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank1_rd_data_way0_f2   [20+`RV_BTB_BTAG_SIZE:0]));
+
+   rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank2_way0_data_out (.*,
+                    .en(ifc_fetch_req_f1),
+                    .din        (btb_bank2_rd_data_way0_f2_in[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank2_rd_data_way0_f2   [20+`RV_BTB_BTAG_SIZE:0]));
+
+   rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank3_way0_data_out (.*,
+                    .en(ifc_fetch_req_f1),
+                    .din        (btb_bank3_rd_data_way0_f2_in[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank3_rd_data_way0_f2   [20+`RV_BTB_BTAG_SIZE:0]));
+
+   rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank0_way1_data_out (.*,
+                    .en(ifc_fetch_req_f1),
+                    .din        (btb_bank0_rd_data_way1_f2_in[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank0_rd_data_way1_f2   [20+`RV_BTB_BTAG_SIZE:0]));
+
+   rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank1_way1_data_out (.*,
+                    .en(ifc_fetch_req_f1),
+                    .din        (btb_bank1_rd_data_way1_f2_in[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank1_rd_data_way1_f2   [20+`RV_BTB_BTAG_SIZE:0]));
+
+   rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank2_way1_data_out (.*,
+                    .en(ifc_fetch_req_f1),
+                    .din        (btb_bank2_rd_data_way1_f2_in[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank2_rd_data_way1_f2   [20+`RV_BTB_BTAG_SIZE:0]));
+
+   rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank3_way1_data_out (.*,
+                    .en(ifc_fetch_req_f1),
+                    .din        (btb_bank3_rd_data_way1_f2_in[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank3_rd_data_way1_f2   [20+`RV_BTB_BTAG_SIZE:0]));
 
 `ifdef RV_BTB_48
+   // wyj br
+   /*
    rvdffe #(17+`RV_BTB_BTAG_SIZE) btb_bank0_way2_data_out (.*,
                     .en(ifc_fetch_req_f1),
                     .din        (btb_bank0_rd_data_way2_f2_in[16+`RV_BTB_BTAG_SIZE:0]),
@@ -1565,8 +1833,30 @@ assign fgmask_f2[0] = (~ifc_fetch_addr_f2[3] & ~ifc_fetch_addr_f2[2]
                     .en(ifc_fetch_req_f1),
                     .din        (btb_bank3_rd_data_way2_f2_in[16+`RV_BTB_BTAG_SIZE:0]),
                     .dout       (btb_bank3_rd_data_way2_f2   [16+`RV_BTB_BTAG_SIZE:0]));
+   */
+   rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank0_way2_data_out (.*,
+                    .en(ifc_fetch_req_f1),
+                    .din        (btb_bank0_rd_data_way2_f2_in[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank0_rd_data_way2_f2   [20+`RV_BTB_BTAG_SIZE:0]));
+
+   rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank1_way2_data_out (.*,
+                    .en(ifc_fetch_req_f1),
+                    .din        (btb_bank1_rd_data_way2_f2_in[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank1_rd_data_way2_f2   [20+`RV_BTB_BTAG_SIZE:0]));
+
+   rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank2_way2_data_out (.*,
+                    .en(ifc_fetch_req_f1),
+                    .din        (btb_bank2_rd_data_way2_f2_in[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank2_rd_data_way2_f2   [20+`RV_BTB_BTAG_SIZE:0]));
+
+   rvdffe #(21+`RV_BTB_BTAG_SIZE) btb_bank3_way2_data_out (.*,
+                    .en(ifc_fetch_req_f1),
+                    .din        (btb_bank3_rd_data_way2_f2_in[20+`RV_BTB_BTAG_SIZE:0]),
+                    .dout       (btb_bank3_rd_data_way2_f2   [20+`RV_BTB_BTAG_SIZE:0]));
 `endif //  `ifdef RV_BTB_48
 
+    // wyj br
+    /*
     always_comb begin : BTB_rd_mux
         btb_bank0_rd_data_way0_f2_in[16+`RV_BTB_BTAG_SIZE:0] = '0 ;
         btb_bank1_rd_data_way0_f2_in[16+`RV_BTB_BTAG_SIZE:0] = '0 ;
@@ -1602,6 +1892,43 @@ assign fgmask_f2[0] = (~ifc_fetch_addr_f2[3] & ~ifc_fetch_addr_f2[2]
            btb_bank1_rd_data_way2_f2_in[16+`RV_BTB_BTAG_SIZE:0] =  btb_bank1_rd_data_way2_out[j];
            btb_bank2_rd_data_way2_f2_in[16+`RV_BTB_BTAG_SIZE:0] =  btb_bank2_rd_data_way2_out[j];
            btb_bank3_rd_data_way2_f2_in[16+`RV_BTB_BTAG_SIZE:0] =  btb_bank3_rd_data_way2_out[j];
+`endif
+    */
+    always_comb begin : BTB_rd_mux
+        btb_bank0_rd_data_way0_f2_in[20+`RV_BTB_BTAG_SIZE:0] = '0 ;
+        btb_bank1_rd_data_way0_f2_in[20+`RV_BTB_BTAG_SIZE:0] = '0 ;
+        btb_bank2_rd_data_way0_f2_in[20+`RV_BTB_BTAG_SIZE:0] = '0 ;
+        btb_bank3_rd_data_way0_f2_in[20+`RV_BTB_BTAG_SIZE:0] = '0 ;
+
+        btb_bank0_rd_data_way1_f2_in[20+`RV_BTB_BTAG_SIZE:0] = '0 ;
+        btb_bank1_rd_data_way1_f2_in[20+`RV_BTB_BTAG_SIZE:0] = '0 ;
+        btb_bank2_rd_data_way1_f2_in[20+`RV_BTB_BTAG_SIZE:0] = '0 ;
+        btb_bank3_rd_data_way1_f2_in[20+`RV_BTB_BTAG_SIZE:0] = '0 ;
+
+`ifdef RV_BTB_48
+       btb_bank0_rd_data_way2_f2_in[20+`RV_BTB_BTAG_SIZE:0] = '0 ;
+       btb_bank1_rd_data_way2_f2_in[20+`RV_BTB_BTAG_SIZE:0] = '0 ;
+       btb_bank2_rd_data_way2_f2_in[20+`RV_BTB_BTAG_SIZE:0] = '0 ;
+       btb_bank3_rd_data_way2_f2_in[20+`RV_BTB_BTAG_SIZE:0] = '0 ;
+`endif
+        for (int j=0; j< LRU_SIZE; j++) begin
+          if (btb_rd_addr_f1[`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] == (`RV_BTB_ADDR_HI-`RV_BTB_ADDR_LO+1)'(j)) begin
+
+           btb_bank0_rd_data_way0_f2_in[20+`RV_BTB_BTAG_SIZE:0] =  btb_bank0_rd_data_way0_out[j];
+           btb_bank1_rd_data_way0_f2_in[20+`RV_BTB_BTAG_SIZE:0] =  btb_bank1_rd_data_way0_out[j];
+           btb_bank2_rd_data_way0_f2_in[20+`RV_BTB_BTAG_SIZE:0] =  btb_bank2_rd_data_way0_out[j];
+           btb_bank3_rd_data_way0_f2_in[20+`RV_BTB_BTAG_SIZE:0] =  btb_bank3_rd_data_way0_out[j];
+
+           btb_bank0_rd_data_way1_f2_in[20+`RV_BTB_BTAG_SIZE:0] =  btb_bank0_rd_data_way1_out[j];
+           btb_bank1_rd_data_way1_f2_in[20+`RV_BTB_BTAG_SIZE:0] =  btb_bank1_rd_data_way1_out[j];
+           btb_bank2_rd_data_way1_f2_in[20+`RV_BTB_BTAG_SIZE:0] =  btb_bank2_rd_data_way1_out[j];
+           btb_bank3_rd_data_way1_f2_in[20+`RV_BTB_BTAG_SIZE:0] =  btb_bank3_rd_data_way1_out[j];
+
+`ifdef RV_BTB_48
+           btb_bank0_rd_data_way2_f2_in[20+`RV_BTB_BTAG_SIZE:0] =  btb_bank0_rd_data_way2_out[j];
+           btb_bank1_rd_data_way2_f2_in[20+`RV_BTB_BTAG_SIZE:0] =  btb_bank1_rd_data_way2_out[j];
+           btb_bank2_rd_data_way2_f2_in[20+`RV_BTB_BTAG_SIZE:0] =  btb_bank2_rd_data_way2_out[j];
+           btb_bank3_rd_data_way2_f2_in[20+`RV_BTB_BTAG_SIZE:0] =  btb_bank3_rd_data_way2_out[j];
 `endif
 
           end

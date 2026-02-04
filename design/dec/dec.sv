@@ -146,6 +146,8 @@ module dec
    input logic [31:0] exu_mul_result_e3,    // 32b mul result
 
    input logic [31:0] exu_csr_rs1_e1,       // rs1 for csr instruction
+   // wyj csr
+   input logic [31:0] exu_csr_rs2_e1,       // rs2 for csr instruction
 
    input logic [31:0] lsu_result_dc3,       // load result
    input logic [31:0] lsu_result_corr_dc4, // corrected load result
@@ -263,8 +265,13 @@ module dec
    output logic [31:0] dec_i0_immed_d,              // immediate data
    output logic [31:0] dec_i1_immed_d,
 
+   // wyj br
+   /*
    output logic [12:1] dec_i0_br_immed_d,           // br immediate data
    output logic [12:1] dec_i1_br_immed_d,
+   */
+   output logic [17:2] dec_i0_br_immed_d,           // br immediate data
+   output logic [17:2] dec_i1_br_immed_d,
 
    output        alu_pkt_t i0_ap,                   // alu packet
    output        alu_pkt_t i1_ap,
@@ -300,6 +307,13 @@ module dec
    output logic        i0_flush_final_e3,          // final flush from i0
 
    output logic        dec_csr_ren_d,              // csr read enable
+
+   // wyj csr
+   output logic [31:0] dec_csr_rddata_d,
+
+   // wyj rdcntv
+   output logic dec_rdcntv_d,
+   output logic [31:0] dec_timer64_final_d,   
 
    output logic        dec_tlu_cancel_e4,          // Cancel lsu op at DC4 due to future trigger hit
 
@@ -448,18 +462,26 @@ module dec
    logic [31:0] dec_i1_wdata_wb;
 
    logic        dec_csr_wen_wb;      // csr write enable at wb
+   // wyj csr
+   /*
    logic [11:0] dec_csr_rdaddr_d;      // read address for csr
    logic [11:0] dec_csr_wraddr_wb;      // write address for csryes
+   */
+   logic [13:0] dec_csr_rdaddr_d;      // read address for csr
+   logic [13:0] dec_csr_wraddr_wb;      // write address for csryes
 
    logic [31:0] dec_csr_wrdata_wb;    // csr write data at wb
 
-   logic [31:0] dec_csr_rddata_d;    // csr read data at wb
+   // wyj
+   // logic [31:0] dec_csr_rddata_d;    // csr read data at wb
    logic        dec_csr_legal_d;            // csr indicates legal operation
 
    logic        dec_csr_wen_unq_d;       // valid csr with write - for csr legal
    logic        dec_csr_any_unq_d;       // valid csr - for csr legal
    logic        dec_csr_stall_int_ff;    // csr is mie/mstatus
 
+   // wyj rdcntv
+   logic [63:0] timer64;
 
 
    trap_pkt_t dec_tlu_packet_e4;

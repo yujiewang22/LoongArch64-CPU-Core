@@ -69,7 +69,9 @@ typedef struct packed {
                        } rets_pkt_t;
 typedef struct packed {
                        logic valid;
-                       logic [11:0] toffset;
+                       // wyj br
+                       // logic [11:0] toffset;
+                       logic [15:0] toffset;
                        logic [1:0] hist;
                        logic br_error;
                        logic br_start_error;
@@ -108,7 +110,9 @@ typedef struct packed {
                        logic boffset;
                        logic pc4;
                        logic [1:0] hist;
-                       logic [11:0] toffset;
+                       // wyj br
+                       // logic [11:0] toffset;
+                       logic [15:0] toffset;
                        logic [`RV_BTB_ADDR_HI:`RV_BTB_ADDR_LO] index;
                        logic [1:0] bank;
                        logic valid;
@@ -165,7 +169,9 @@ typedef struct packed {
                        logic i1valid;
                        logic csrwen;
                        logic csrwonly;
-                       logic [11:0] csrwaddr;
+                       // wyj csr
+                       // logic [11:0] csrwaddr;
+                       logic [13:0] csrwaddr;
                        logic i1secondary;
                        logic [1:0] i1rs1bype2;
                        logic [1:0] i1rs2bype2;
@@ -244,9 +250,19 @@ typedef struct packed {
                        logic rs1;
                        logic rs2;
                        logic imm12;
+                       // wyj imm
+                       logic uimm12;
                        logic rd;
+                       // wyj jal
+                       logic r0;
+                       // wyj jal
+                       logic r1;
                        logic shimm5;
                        logic imm20;
+                       // wyj imm
+                       logic imm26;
+                       // wyj imm
+                       logic imm16;
                        logic pc;
                        logic load;
                        logic store;
@@ -274,7 +290,11 @@ typedef struct packed {
                        logic csr_clr;
                        logic csr_set;
                        logic csr_write;
+                       // wyj csr
+                       logic csr_xchg;
                        logic csr_imm;
+                       // wyj rdcntv
+                       logic rdcntv; 
                        logic presync;
                        logic postsync;
                        logic ebreak;
