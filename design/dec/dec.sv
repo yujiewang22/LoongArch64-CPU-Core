@@ -472,7 +472,7 @@ module dec
 
    logic [31:0] dec_csr_wrdata_wb;    // csr write data at wb
 
-   // wyj
+   // wyj csr
    // logic [31:0] dec_csr_rddata_d;    // csr read data at wb
    logic        dec_csr_legal_d;            // csr indicates legal operation
 
