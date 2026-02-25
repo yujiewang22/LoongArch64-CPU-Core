@@ -11,6 +11,8 @@ snapshots/
 .zenconfig
 workspace/
 workspace/work
+# wyj
+build/
 # These are derived files
 configs/common_defines.vh
 configs/pd_defines.vh
