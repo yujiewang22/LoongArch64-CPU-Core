@@ -217,14 +217,14 @@ loongarch32r[sw]      = { lsu store rs1 rs2 word }
 
 loongarch32r[addi]    = { alu rs1 imm12 rd add pm_alu }
 loongarch32r[slti]    = { alu rs1 imm12 rd sub slt pm_alu }
+loongarch32r[sltiu]   = { alu rs1 imm12 rd sub slt unsign pm_alu }
 # wyj
-# rv32i[sltiu]        = { alu rs1 imm12 rd sub slt unsign pm_alu }
 # rv32i[xori]         = { alu rs1 imm12 rd lxor pm_alu }
 # rv32i[ori]          = { alu rs1 imm12 rd lor pm_alu }
-loongarch32r[sltiu]   = { alu rs1 uimm12 rd sub slt unsign pm_alu }
+# rv32i[andi]         = { alu rs1 imm12 rd land pm_alu }
 loongarch32r[xori]    = { alu rs1 uimm12 rd lxor pm_alu }
 loongarch32r[ori]     = { alu rs1 uimm12 rd lor pm_alu }
-loongarch32r[andi]    = { alu rs1 imm12 rd land pm_alu }
+loongarch32r[andi]    = { alu rs1 uimm12 rd land pm_alu }
 loongarch32r[slli]    = { alu rs1 shimm5 rd sll pm_alu }
 loongarch32r[srli]    = { alu rs1 shimm5 rd srl pm_alu }
 loongarch32r[srai]    = { alu rs1 shimm5 rd sra pm_alu }

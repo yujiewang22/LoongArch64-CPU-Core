@@ -13,6 +13,10 @@ workspace/
 workspace/work
 # wyj
 build/
+design/dec/coredecode.e
+design/dec/equations
+design/dec/legal.e
+design/dec/legal_equation
 # These are derived files
 configs/common_defines.vh
 configs/pd_defines.vh
