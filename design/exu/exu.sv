@@ -313,7 +313,7 @@ module exu
    // wyj rs1/rs2/rd
    assign i0_rs2_final_d[31:0] = ({32{~dec_csr_ren_d & ~dec_rdcntv_d}} & i0_rs2_d[31:0]) |
                                  ({32{ dec_csr_ren_d & ~dec_rdcntv_d}} & dec_csr_rddata_d[31:0]) |
-                                 ({32{~dec_csr_ren_d &  dec_rdcntv_d}} & dec_timer64_final_d);
+                                 ({32{~dec_csr_ren_d &  dec_rdcntv_d}} & dec_timer64_final_d[31:0]);
 
    assign i1_rs1_d[31:0]       = ({32{~dec_i1_rs1_bypass_en_d}} & gpr_i1_rs1_d[31:0]) |
                                  ({32{~dec_i1_rs1_bypass_en_d   & dec_i1_select_pc_d}} & { dec_i1_pc_d[31:1], 1'b0}) |  // pc orthogonal with rs1
