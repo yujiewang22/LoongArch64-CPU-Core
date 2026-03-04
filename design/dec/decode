@@ -170,6 +170,8 @@ loongarch32r = {
       ebreak
       ecall
       mret
+      # wyj
+      wfi
       mul
       rs1_sign
       rs2_sign
@@ -257,7 +259,9 @@ loongarch32r[fence.i] = { alu lor fence fence_i presync postsync}
 loongarch32r[ecall]   = { alu rs1 imm12 rd lor ecall postsync }
 loongarch32r[ebreak]  = { alu rs1 imm12 rd lor ebreak postsync }
 loongarch32r[mret]    = { alu rs1 imm12 rd lor mret postsync }
-loongarch32r[wfi]     = { alu rs1 imm12 rd lor pm_alu }
+# wyj
+# rv32i[wfi]          = { alu rs1 imm12 rd lor pm_alu }
+loongarch32r[wfi]     = { alu rs1 imm12 rd lor wfi }
 
 # csr
 

@@ -300,6 +300,8 @@ typedef struct packed {
                        logic ebreak;
                        logic ecall;
                        logic mret;
+                       // wyj wfi
+                       logic wfi;
                        logic mul;
                        logic rs1_sign;
                        logic rs2_sign;

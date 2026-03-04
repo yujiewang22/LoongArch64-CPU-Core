@@ -1200,21 +1200,21 @@ end : cam_array
    assign i1r.rs2[4:0] = i1[24:20];
    assign i1r.rd[4:0] = i1[11:7];
    */
-   assign i0r.rs1[4:0] = ({5{ i0_dp.csr_write & ~(i0_dp.ebreak | i0_dp.ecall | i0_dp.mret)}} & i0[4:0])  |
-                         ({5{~i0_dp.csr_write &  (i0_dp.ebreak | i0_dp.ecall | i0_dp.mret)}} & 5'b00000) |
-                         ({5{~i0_dp.csr_write & ~(i0_dp.ebreak | i0_dp.ecall | i0_dp.mret)}} & i0[9:5]);
+   assign i0r.rs1[4:0] = ({5{ i0_dp.csr_write & ~(i0_dp.ebreak | i0_dp.ecall | i0_dp.mret | i0_dp.wfi)}} & i0[4:0])  |
+                         ({5{~i0_dp.csr_write &  (i0_dp.ebreak | i0_dp.ecall | i0_dp.mret | i0_dp.wfi)}} & 5'b00000) |
+                         ({5{~i0_dp.csr_write & ~(i0_dp.ebreak | i0_dp.ecall | i0_dp.mret | i0_dp.wfi)}} & i0[9:5]);
    assign i0r.rs2[4:0] = (i0_dp.store | i0_dp.condbr | i0_dp.csr_xchg) ? i0[4:0] : i0[14:10];
-   assign i0r.rd[4:0]  = ({5{i0_dp.r0 | (i0_dp.ebreak | i0_dp.ecall | i0_dp.mret)}} & 5'b00000) |
+   assign i0r.rd[4:0]  = ({5{i0_dp.r0 | (i0_dp.ebreak | i0_dp.ecall | i0_dp.mret | i0_dp.wfi)}} & 5'b00000) |
                          ({5{i0_dp.r1}} & 5'b00001) |
-                         ({5{(~i0_dp.r0 & ~i0_dp.r1 & ~(i0_dp.ebreak | i0_dp.ecall | i0_dp.mret))}} & i0[4:0]);
+                         ({5{(~i0_dp.r0 & ~i0_dp.r1 & ~(i0_dp.ebreak | i0_dp.ecall | i0_dp.mret | i0_dp.wfi))}} & i0[4:0]);
 
-   assign i1r.rs1[4:0] = ({5{ i1_dp.csr_write & ~(i1_dp.ebreak | i1_dp.ecall | i1_dp.mret)}} & i1[4:0]) |
-                         ({5{~i1_dp.csr_write &  (i1_dp.ebreak | i1_dp.ecall | i1_dp.mret)}} & 5'b00000) |
-                         ({5{~i1_dp.csr_write & ~(i1_dp.ebreak | i1_dp.ecall | i1_dp.mret)}} & i1[9:5]);
+   assign i1r.rs1[4:0] = ({5{ i1_dp.csr_write & ~(i1_dp.ebreak | i1_dp.ecall | i1_dp.mret | i1_dp.wfi)}} & i1[4:0]) |
+                         ({5{~i1_dp.csr_write &  (i1_dp.ebreak | i1_dp.ecall | i1_dp.mret | i1_dp.wfi)}} & 5'b00000) |
+                         ({5{~i1_dp.csr_write & ~(i1_dp.ebreak | i1_dp.ecall | i1_dp.mret | i1_dp.wfi)}} & i1[9:5]);
    assign i1r.rs2[4:0] = (i1_dp.store | i1_dp.condbr | i1_dp.csr_xchg) ? i1[4:0] : i1[14:10];
-   assign i1r.rd[4:0]  = ({5{i1_dp.r0 | (i1_dp.ebreak | i1_dp.ecall | i1_dp.mret)}} & 5'b00000) |
+   assign i1r.rd[4:0]  = ({5{i1_dp.r0 | (i1_dp.ebreak | i1_dp.ecall | i1_dp.mret | i1_dp.wfi)}} & 5'b00000) |
                          ({5{i1_dp.r1}} & 5'b00001) |
-                         ({5{(~i1_dp.r0 & ~i1_dp.r1 & ~(i1_dp.ebreak | i1_dp.ecall | i1_dp.mret))}} & i1[4:0]);
+                         ({5{(~i1_dp.r0 & ~i1_dp.r1 & ~(i1_dp.ebreak | i1_dp.ecall | i1_dp.mret | i1_dp.wfi))}} & i1[4:0]);
 
 
    assign dec_i0_rs1_en_d = i0_dp.rs1 & (i0r.rs1[4:0] != 5'd0);  // if rs1_en=0 then read will be all 0's
@@ -2967,6 +2967,8 @@ assign out.legal = (!i[31]&!i[30]&i[29]&i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]
 
    assign out.mret = (!i[30]&i[26]&i[25]&!i[15]);
 
+   assign out.wfi = (!i[30]&i[26]&i[25]&i[15]);
+
    assign out.mul = (!i[30]&!i[27]&!i[26]&!i[25]&i[19]&i[18]);
 
    assign out.rs1_sign = (!i[30]&!i[27]&!i[26]&!i[25]&!i[22]&i[19]&i[15]);
@@ -2984,9 +2986,9 @@ assign out.legal = (!i[31]&!i[30]&i[29]&i[28]&!i[27]&!i[26]&!i[25]&!i[24]&!i[23]
 
    assign out.fence_i = (i[29]&i[28]&!i[15]);
 
-   assign out.pm_alu = (!i[30]&i[26]&i[25]&i[15]) | (!i[30]&!i[29]&!i[26]&!i[19]&i[18]) | (
-      !i[30]&!i[29]&!i[26]&i[20]&!i[18]) | (!i[30]&i[28]&i[26]) | (!i[30]
-      &!i[27]&i[25]&!i[22]) | (!i[30]&!i[29]&!i[26]&i[22]);
+   assign out.pm_alu = (!i[30]&!i[29]&!i[26]&!i[19]&i[18]) | (!i[30]&!i[29]&!i[26]
+      &i[20]&!i[18]) | (!i[30]&i[28]&i[26]) | (!i[30]&!i[27]&i[25]&!i[22]) | (
+      !i[30]&!i[29]&!i[26]&i[22]);
 
    assign out.legal = (!i[31]&!i[30]&!i[29]&!i[28]&!i[27]&i[25]&!i[24]&!i[23]&i[22]
       &!i[21]&!i[20]&i[19]&!i[18]&!i[17]&!i[16]&!i[14]&i[13]&i[12]&i[11]
